@@ -22,6 +22,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
+      - name: Configure Native Fusion Loader
+        run: cmake -S src/Fusion.Loader.Native -B artifacts/FusionLoaderBuild -A x64
+
+      - name: Build Native Fusion Loader
+        run: cmake --build artifacts/FusionLoaderBuild --config Release --parallel
+        
       - name: Install .NET
         uses: actions/setup-dotnet@v6
         with:
