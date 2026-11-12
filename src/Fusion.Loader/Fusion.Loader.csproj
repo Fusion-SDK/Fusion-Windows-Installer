@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><AssemblyName>Fusion.Loader</AssemblyName><RootNamespace>Fusion.Loader</RootNamespace></PropertyGroup>
+  <ItemGroup><ProjectReference Include="..\Fusion.Shared\Fusion.Shared.csproj" /></ItemGroup>
+</Project>
