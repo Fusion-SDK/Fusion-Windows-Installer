@@ -8,6 +8,7 @@ using Fusion.Installer.Models;
 
 namespace Fusion.Installer.Services;
 
+public partial class MainWindow : Window
 {
     public Task<GameInstall?> DetectAsync()
     {
