@@ -1,7 +1,7 @@
 [README.md](https://github.com/user-attachments/files/34753833/README.md)
 # Fusion Installer for Windows
 
-A native Windows desktop starter for the Fusion Circle modding ecosystem.
+A native Windows desktop starter for the Fusion modding ecosystem.
 
 ## Technology
 
