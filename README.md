@@ -1,119 +1,88 @@
-[README.md](https://github.com/user-attachments/files/34753833/README.md)
-# Fusion Installer for Windows
+# Fusion — Windows Installer
 
-A native Windows desktop starter for the Fusion modding ecosystem.
+**The official Windows installer for Fusion Circle, a Geometry Dash modding platform.**
 
-## Technology
+Fusion Circle aims to make discovering, installing, and managing Geometry Dash mods easier through a dedicated Windows application.
 
-- C# and .NET 10
-- WPF / XAML
-- Supabase Auth and PostgREST through `HttpClient`
-- PowerShell build and packaging scripts
-- GitHub Actions Windows CI
+---
 
-## Projects
+## About Fusion Circle
 
-- `src/Fusion.Installer`: the desktop mod manager.
-- `src/Fusion.Setup`: a separate branded setup wizard that installs the published desktop app.
-- `tests/Fusion.Installer.Tests`: lightweight .NET tests.
+Fusion Circle is an independent Geometry Dash modding ecosystem designed to bring mod discovery, installation, and management together in one place.
 
-## Important implementation status
+The Windows Installer is the entry point to the Fusion Circle experience.
 
-This repository is a functional application foundation, not a finished Geometry Dash mod loader.
+### Planned Features
 
-- Supabase login and registration use the Supabase Auth REST API.
-- The mod browser reads approved entries from the Supabase `mods` table.
-- Steam Geometry Dash detection checks common Steam library locations.
-- Update checking is a metadata check against a configurable JSON endpoint.
-- Mod installation is intentionally not enabled yet. A real package format, trusted signing/verification, and a tested Fusion Loader runtime must exist before packages can safely be activated.
-- Fusion Setup installs the desktop application files produced by the build script. It does not modify Geometry Dash or redistribute game files.
+- **Fusion Setup** — A dedicated Windows installation experience.
+- **Game Detection** — Locate supported Geometry Dash installations.
+- **Mod Discovery** — Browse community-created mods.
+- **Mod Management** — Manage installed mods from one application.
+- **Fusion SDK Integration** — Support for developers building Fusion-compatible mods.
+- **Account Integration** — Connect with the Fusion ecosystem.
 
-Use a legitimate Steam installation of Geometry Dash. Do not distribute Geometry Dash game files or proprietary assets.
+*Features are subject to development and may not yet be available.*
 
-## Requirements
+---
 
-- Windows 10 or 11, 64-bit
-- .NET 10 SDK
-- PowerShell 7 recommended (Windows PowerShell 5.1 may also work)
-- A Supabase project for online account/catalog features
+## Platform Support
 
-## Configure Supabase
+| Platform | Support |
+|---|---|
+| Windows | Primary target |
+| Steam Geometry Dash | Planned |
 
-1. Create a Supabase project.
-2. Copy `.env.example` to `.env.local`.
-3. Fill in the project URL and **publishable/anon key**.
-4. Run `supabase/migrations/0001_initial.sql` in the Supabase SQL Editor.
-5. Never put a Supabase service-role key in this desktop application.
+---
 
-The app reads configuration from environment variables:
-- `FUSION_SUPABASE_URL`
-- `FUSION_SUPABASE_ANON_KEY`
-- `FUSION_UPDATES_URL`
+## Project Status
 
-For local development, the launch profile in `Properties/launchSettings.json` reads values from environment variables. Set them in your terminal before running, or configure them in your IDE. `.env.local` is a reference file; .NET does not automatically load it.
+<badge>In Development</badge>
 
-Example PowerShell session:
+Fusion Circle is actively being developed. Features, interfaces, and compatibility may change as development progresses.
 
-```powershell
-$env:FUSION_SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
-$env:FUSION_SUPABASE_ANON_KEY = "YOUR_PUBLISHABLE_OR_ANON_KEY"
-dotnet run --project src/Fusion.Installer
-```
+This repository focuses on the Windows installer and its associated application.
 
-## Build and run
+---
 
-```powershell
-dotnet restore Fusion.sln
-dotnet build Fusion.sln -c Release
-dotnet run --project src/Fusion.Installer
-```
+## For Developers
 
-## Build a standalone installer package
+We welcome developers interested in contributing to Fusion Circle.
 
-Run from the repository root:
+You can help with:
+- Windows application development
+- Installer development
+- UI/UX improvements
+- Testing and bug reporting
+- Documentation
 
-```powershell
-.\scripts\build-windows.ps1
-```
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting contributions.
 
-The script publishes Fusion Installer, stages it as the Fusion Setup payload, then publishes Fusion Setup. Output is placed under `artifacts/`.
+---
 
-To create a self-contained x64 build:
+## Bug Reports & Suggestions
 
-```powershell
-.\scripts\build-windows.ps1 -SelfContained
-```
+Found a problem or have an idea?
 
-The setup wizard installs to the current user's LocalAppData by default and creates a Start Menu shortcut. It does not require administrator access.
+- [Report a Bug](../../issues/new?template=bug_report.md)
+- [Request a Feature](../../issues/new?template=feature_request.md)
 
-## Tests
+---
 
-```powershell
-dotnet test Fusion.sln -c Release
-```
+## Related Projects
 
-## Repository structure
+- **Fusion SDK** — Tools and resources for Fusion-compatible mod development.
+- **Fusion Circle** — The broader Geometry Dash modding ecosystem.
 
-```text
-Fusion-Windows/
-├── Fusion.sln
-├── src/
-│   ├── Fusion.Installer/
-│   └── Fusion.Setup/
-├── tests/
-├── supabase/
-├── scripts/
-└── .github/workflows/
-```
-
-## Security notes
-
-- Keep `.env.local`, tokens, and credentials out of Git.
-- Only use the public Supabase client key in a desktop app; enforce access with Row Level Security.
-- Treat mod packages as untrusted input.
-- Do not enable package installation until signature verification and loader compatibility checks are implemented.
-- Do not overwrite or patch `GeometryDash.exe`.
+---
 
 ## License
 
-MIT. See `LICENSE`.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  **Fusion Circle**
+  <br>
+  Built for the Geometry Dash modding community.
+</p>
