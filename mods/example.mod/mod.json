@@ -1,0 +1,9 @@
+
+{
+  "id": "com.fusion.example",
+  "name": "Fusion Example Mod",
+  "author": "Fusion Team",
+  "version": "1.0.0",
+  "requiredLoaderApi": 1,
+  "dependencies": []
+}
