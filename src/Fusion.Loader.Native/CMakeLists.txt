@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(FusionLoaderNative
-    VERSION 0.3.0
+    VERSION 0.4.0
     DESCRIPTION "Fusion native mod loader core"
     LANGUAGES CXX
 )
@@ -21,6 +21,7 @@ add_library(FusionLoaderCore STATIC
     source/manifest_parser.cpp
     source/mod_registry.cpp
     source/mod_loader.cpp
+    source/package_manager.cpp
 )
 
 target_include_directories(FusionLoaderCore
