@@ -1,16 +1,16 @@
 # Fusion — Windows Installer
 
-**The official Windows installer for Fusion Circle, a Geometry Dash modding platform.**
+**The official Windows installer for Fusion, a Geometry Dash modding platform.**
 
 Fusion Circle aims to make discovering, installing, and managing Geometry Dash mods easier through a dedicated Windows application.
 
 ---
 
-## About Fusion Circle
+## About Fusion
 
-Fusion Circle is an independent Geometry Dash modding ecosystem designed to bring mod discovery, installation, and management together in one place.
+Fusion is an independent Geometry Dash modding ecosystem designed to bring mod discovery, installation, and management together in one place.
 
-The Windows Installer is the entry point to the Fusion Circle experience.
+The Windows Installer is the entry point to the Fusion experience.
 
 ### Planned Features
 
@@ -46,7 +46,7 @@ This repository focuses on the Windows installer and its associated application.
 
 ## For Developers
 
-We welcome developers interested in contributing to Fusion Circle.
+We welcome developers interested in contributing to Fusion.
 
 You can help with:
 - Windows application development
@@ -71,7 +71,7 @@ Found a problem or have an idea?
 ## Related Projects
 
 - **Fusion SDK** — Tools and resources for Fusion-compatible mod development.
-- **Fusion Circle** — The broader Geometry Dash modding ecosystem.
+- **Fusion** — The broader Geometry Dash modding ecosystem.
 
 ---
 
@@ -82,7 +82,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ---
 
 <p align="center">
-  **Fusion Circle**
+  Fusion
   <br>
   Built for the Geometry Dash modding community.
 </p>
