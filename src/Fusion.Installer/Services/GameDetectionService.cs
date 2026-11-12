@@ -3,12 +3,16 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Fusion.Installer.Services;
 
 public class GameDetectionService
 {
-    private const string SteamAppId = "322170";
+    public Task<string?> DetectAsync()
+    {
+        return Task.Run(FindGeometryDash);
+    }
 
     public string? FindGeometryDash()
     {
@@ -42,7 +46,7 @@ public class GameDetectionService
 
     private static string? GetSteamInstallPath()
     {
-        string[] registryPaths =
+        string[] possiblePaths =
         {
             @"C:\Program Files (x86)\Steam",
             @"C:\Program Files\Steam",
@@ -54,17 +58,12 @@ public class GameDetectionService
             )
         };
 
-        return registryPaths.FirstOrDefault(
-            path => Directory.Exists(path)
-        );
+        return possiblePaths.FirstOrDefault(Directory.Exists);
     }
 
     private static List<string> GetSteamLibraryPaths(string steamPath)
     {
-        var libraries = new List<string>
-        {
-            steamPath
-        };
+        var libraries = new List<string> { steamPath };
 
         var vdfPath = Path.Combine(
             steamPath,
@@ -79,8 +78,12 @@ public class GameDetectionService
         {
             var trimmed = line.Trim();
 
-            if (!trimmed.StartsWith("\"path\"", StringComparison.OrdinalIgnoreCase))
+            if (!trimmed.StartsWith(
+                "\"path\"",
+                StringComparison.OrdinalIgnoreCase))
+            {
                 continue;
+            }
 
             var parts = trimmed.Split('"');
 
@@ -90,7 +93,9 @@ public class GameDetectionService
             var libraryPath = parts[3].Replace(@"\\", @"\");
 
             if (Directory.Exists(libraryPath) &&
-                !libraries.Contains(libraryPath, StringComparer.OrdinalIgnoreCase))
+                !libraries.Contains(
+                    libraryPath,
+                    StringComparer.OrdinalIgnoreCase))
             {
                 libraries.Add(libraryPath);
             }
