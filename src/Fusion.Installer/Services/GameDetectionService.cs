@@ -1,69 +1,101 @@
-using Microsoft.Win32;
-using Fusion.Installer.Models;
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace Fusion.Installer.Services;
 
-public sealed class GameDetectionService
+public class GameDetectionService
 {
-    private const string GameFolderName = "Geometry Dash";
-    private const string ExecutableName = "GeometryDash.exe";
+    private const string SteamAppId = "322170";
 
-    public Task<GameInstall?> DetectAsync() => Task.Run(Detect);
-
-    private static GameInstall? Detect()
+    public string? FindGeometryDash()
     {
-        foreach (var library in FindSteamLibraries())
+        var steamPath = GetSteamInstallPath();
+
+        if (string.IsNullOrWhiteSpace(steamPath))
+            return null;
+
+        var libraries = GetSteamLibraryPaths(steamPath);
+
+        foreach (var library in libraries)
         {
-            var folder = Path.Combine(library, "steamapps", "common", GameFolderName);
-            var executable = Path.Combine(folder, ExecutableName);
+            var gamePath = Path.Combine(
+                library,
+                "steamapps",
+                "common",
+                "Geometry Dash"
+            );
+
+            var executable = Path.Combine(
+                gamePath,
+                "GeometryDash.exe"
+            );
+
             if (File.Exists(executable))
-                return new GameInstall(folder, executable);
+                return executable;
         }
+
         return null;
     }
 
-    private static IEnumerable<string> FindSteamLibraries()
+    private static string? GetSteamInstallPath()
     {
-        var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var registryPaths = new[]
+        string[] registryPaths =
         {
-            (Registry.CurrentUser, @"Software\Valve\Steam", "SteamPath"),
-            (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
-            (Registry.LocalMachine, @"SOFTWARE\Valve\Steam", "InstallPath")
+            @"C:\Program Files (x86)\Steam",
+            @"C:\Program Files\Steam",
+            Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.ProgramFilesX86
+                ),
+                "Steam"
+            )
         };
 
-        foreach (var (hive, keyPath, valueName) in registryPaths)
+        return registryPaths.FirstOrDefault(
+            path => Directory.Exists(path)
+        );
+    }
+
+    private static List<string> GetSteamLibraryPaths(string steamPath)
+    {
+        var libraries = new List<string>
         {
-            try
+            steamPath
+        };
+
+        var vdfPath = Path.Combine(
+            steamPath,
+            "steamapps",
+            "libraryfolders.vdf"
+        );
+
+        if (!File.Exists(vdfPath))
+            return libraries;
+
+        foreach (var line in File.ReadLines(vdfPath))
+        {
+            var trimmed = line.Trim();
+
+            if (!trimmed.StartsWith("\"path\"", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var parts = trimmed.Split('"');
+
+            if (parts.Length < 4)
+                continue;
+
+            var libraryPath = parts[3].Replace(@"\\", @"\");
+
+            if (Directory.Exists(libraryPath) &&
+                !libraries.Contains(libraryPath, StringComparer.OrdinalIgnoreCase))
             {
-                using var key = hive.OpenSubKey(keyPath);
-                var value = key?.GetValue(valueName)?.ToString();
-                if (!string.IsNullOrWhiteSpace(value))
-                    roots.Add(value.Replace('/', '\\'));
+                libraries.Add(libraryPath);
             }
-            catch { }
         }
 
-        var common = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam");
-        if (Directory.Exists(common)) roots.Add(common);
-
-        foreach (var root in roots)
-        {
-            yield return root;
-            var vdf = Path.Combine(root, "steamapps", "libraryfolders.vdf");
-            if (!File.Exists(vdf)) continue;
-            foreach (var line in File.ReadLines(vdf))
-            {
-                var marker = line.IndexOf("\"path\"", StringComparison.OrdinalIgnoreCase);
-                if (marker < 0) continue;
-                var pieces = line.Split('"', StringSplitOptions.RemoveEmptyEntries);
-                if (pieces.Length >= 3)
-                {
-                    var path = pieces[^1].Replace("\\\\", "\\");
-                    if (Path.IsPathRooted(path) && Directory.Exists(path))
-                        yield return path;
-                }
-            }
-        }
+        return libraries;
     }
 }
