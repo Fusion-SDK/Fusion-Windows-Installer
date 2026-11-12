@@ -106,4 +106,45 @@ public partial class MainWindow : Window
 
         return libraries;
     }
+    private void Overview_Click(object sender, RoutedEventArgs e)
+{
+    ShowOverview();
+}
+
+private async void Mods_Click(object sender, RoutedEventArgs e)
+{
+    await ShowModsAsync();
+}
+
+private void MyMods_Click(object sender, RoutedEventArgs e)
+{
+    ShowPlaceholder(
+        "My Mods",
+        "Your installed mod library.",
+        "Mod installation is not enabled yet."
+    );
+}
+
+private void Games_Click(object sender, RoutedEventArgs e)
+{
+    ShowPlaceholder(
+        "Games",
+        "Manage supported game installations.",
+        "The first supported target is Geometry Dash on Steam."
+    );
+}
+
+private void Settings_Click(object sender, RoutedEventArgs e)
+{
+    ShowPlaceholder(
+        "Settings",
+        "Application preferences.",
+        "Settings will be expanded as Fusion develops."
+    );
+}
+
+private void ShowAuth_Click(object sender, RoutedEventArgs e)
+{
+    ShowAuth();
+}
 }
