@@ -1,6 +1,6 @@
 # Code of Conduct
 
-We want Fusion Circle to be a welcoming, constructive community.
+We want Fusion to be a welcoming, constructive community.
 
 - Be respectful and patient.
 - Critique ideas, not people.
