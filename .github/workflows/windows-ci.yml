@@ -47,7 +47,7 @@ jobs:
             -o artifacts/Fusion-Installer
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Fusion-Windows-Installer
           path: artifacts/Fusion-Installer/
