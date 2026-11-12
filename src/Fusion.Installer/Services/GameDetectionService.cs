@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,32 +17,31 @@ public class GameDetectionService
 
     public GameInstall? FindGeometryDash()
     {
-        var steamPath = GetSteamInstallPath();
+        string? steamPath = GetSteamInstallPath();
 
         if (string.IsNullOrWhiteSpace(steamPath))
             return null;
 
-        foreach (var library in GetSteamLibraryPaths(steamPath))
+        foreach (string library in GetSteamLibraryPaths(steamPath))
         {
-            var gameDirectory = Path.Combine(
+            string gameDirectory = Path.Combine(
                 library,
                 "steamapps",
                 "common",
                 "Geometry Dash"
             );
 
-            var executable = Path.Combine(
+            string executable = Path.Combine(
                 gameDirectory,
                 "GeometryDash.exe"
             );
 
             if (File.Exists(executable))
             {
-                return new GameInstall
-                {
-                    GameDirectory,
+                return new GameInstall(
+                    gameDirectory,
                     executable
-                };
+                );
             }
         }
 
@@ -50,7 +50,7 @@ public class GameDetectionService
 
     private static string? GetSteamInstallPath()
     {
-        var possiblePaths = new[]
+        string[] possiblePaths =
         {
             @"C:\Program Files (x86)\Steam",
             @"C:\Program Files\Steam",
@@ -69,7 +69,7 @@ public class GameDetectionService
     {
         var libraries = new List<string> { steamPath };
 
-        var vdfPath = Path.Combine(
+        string vdfPath = Path.Combine(
             steamPath,
             "steamapps",
             "libraryfolders.vdf"
@@ -78,9 +78,9 @@ public class GameDetectionService
         if (!File.Exists(vdfPath))
             return libraries;
 
-        foreach (var line in File.ReadLines(vdfPath))
+        foreach (string line in File.ReadLines(vdfPath))
         {
-            var trimmed = line.Trim();
+            string trimmed = line.Trim();
 
             if (!trimmed.StartsWith(
                 "\"path\"",
@@ -89,12 +89,12 @@ public class GameDetectionService
                 continue;
             }
 
-            var parts = trimmed.Split('"');
+            string[] parts = trimmed.Split('"');
 
             if (parts.Length < 4)
                 continue;
 
-            var libraryPath = parts[3].Replace(@"\\", @"\");
+            string libraryPath = parts[3].Replace(@"\\", @"\");
 
             if (Directory.Exists(libraryPath) &&
                 !libraries.Contains(
