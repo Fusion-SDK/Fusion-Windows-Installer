@@ -8,12 +8,36 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fusion.Setup", "src\Fusion.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fusion.Installer.Tests", "tests\Fusion.Installer.Tests\Fusion.Installer.Tests.csproj", "{7D2F1A10-92A1-4B1C-9A70-1D9E4D10A103}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fusion.Shared", "src\Fusion.Shared\Fusion.Shared.csproj", "{B7A7B111-9C81-4A2A-9C10-100000000001}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fusion.Loader", "src\Fusion.Loader\Fusion.Loader.csproj", "{B7A7B111-9C81-4A2A-9C10-100000000002}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fusion.Updater", "src\Fusion.Updater\Fusion.Updater.csproj", "{B7A7B111-9C81-4A2A-9C10-100000000003}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fusion.Uninstaller", "src\Fusion.Uninstaller\Fusion.Uninstaller.csproj", "{B7A7B111-9C81-4A2A-9C10-100000000004}"
+EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
         Debug|Any CPU = Debug|Any CPU
         Release|Any CPU = Release|Any CPU
     EndGlobalSection
     GlobalSection(ProjectConfigurationPlatforms) = postSolution
+        {B7A7B111-9C81-4A2A-9C10-100000000001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000001}.Release|Any CPU.Build.0 = Release|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000002}.Release|Any CPU.Build.0 = Release|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000003}.Release|Any CPU.Build.0 = Release|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000004}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000004}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000004}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {B7A7B111-9C81-4A2A-9C10-100000000004}.Release|Any CPU.Build.0 = Release|Any CPU
         {7D2F1A10-92A1-4B1C-9A70-1D9E4D10A101}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
         {7D2F1A10-92A1-4B1C-9A70-1D9E4D10A101}.Debug|Any CPU.Build.0 = Debug|Any CPU
         {7D2F1A10-92A1-4B1C-9A70-1D9E4D10A101}.Release|Any CPU.ActiveCfg = Release|Any CPU
