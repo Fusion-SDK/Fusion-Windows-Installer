@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+
 #include "mod_registry.hpp"
 
 namespace fusion::loader {
@@ -26,10 +27,13 @@ namespace fusion::loader {
 
         const std::vector<ManagedMod>& GetManagedMods() const;
 
+        const std::vector<std::string>& GetLoadOrder() const;
+
         void Clear();
 
     private:
         std::vector<ManagedMod> managedMods_;
+        std::vector<std::string> loadOrder_;
     };
 
 }
