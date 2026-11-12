@@ -1,3 +1,6 @@
 namespace Fusion.Installer.Models;
 
-public sealed record GameInstall(string GameDirectory, string ExecutablePath);
+public class GameInstall
+{
+    public string GameDirectory { get; set; } = string.Empty;
+}
