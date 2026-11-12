@@ -1,0 +1,55 @@
+
+name: Fusion Windows CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Fusion for Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Display .NET Version
+        run: dotnet --version
+
+      - name: Restore Dependencies
+        run: dotnet restore Fusion.sln
+
+      - name: Build Solution
+        run: dotnet build Fusion.sln --configuration Release --no-restore
+
+      - name: Run Tests
+        run: dotnet test Fusion.sln --configuration Release --no-build
+
+      - name: Publish Fusion Installer
+        run: |
+          dotnet publish src/Fusion.Installer/Fusion.Installer.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -o artifacts/Fusion-Installer
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fusion-Windows-Installer
+          path: artifacts/Fusion-Installer/
+          if-no-files-found: error
+          retention-days: 14
