@@ -1,10 +1,14 @@
-
 cmake_minimum_required(VERSION 3.24)
 
 project(FusionLoaderNative
     VERSION 0.1.0
     DESCRIPTION "Fusion native mod loader core"
     LANGUAGES CXX
+)
+
+add_subdirectory(
+    "${CMAKE_CURRENT_SOURCE_DIR}/../Fusion.SDK"
+    "${CMAKE_CURRENT_BINARY_DIR}/FusionSDK"
 )
 
 add_library(FusionLoaderCore STATIC
@@ -14,6 +18,11 @@ add_library(FusionLoaderCore STATIC
 target_include_directories(FusionLoaderCore
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(FusionLoaderCore
+    PUBLIC
+        Fusion::SDK
 )
 
 target_compile_features(FusionLoaderCore PUBLIC cxx_std_20)
