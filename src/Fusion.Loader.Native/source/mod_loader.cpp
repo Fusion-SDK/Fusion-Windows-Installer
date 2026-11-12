@@ -1,9 +1,12 @@
 
 #include "fusion/loader/mod_loader.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <cstdint>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace fusion::loader {
 
@@ -30,7 +33,7 @@ namespace fusion::loader {
                     return false;
 
                 const std::size_t length =
-                    (end == std::string::npos)
+                    end == std::string::npos
                     ? value.size() - start
                     : end - start;
 
@@ -40,7 +43,7 @@ namespace fusion::loader {
                 const char* first = value.data() + start;
                 const char* last = first + length;
 
-                auto result = std::from_chars(
+                const auto result = std::from_chars(
                     first, last, *parts[i]
                 );
 
@@ -81,76 +84,165 @@ namespace fusion::loader {
     {
         Clear();
 
-        std::unordered_map<std::string, const DiscoveredMod*> byId;
+        const auto& discoveredMods = registry.GetMods();
 
-        for (const auto& discovered : registry.GetMods()) {
-            if (!discovered.valid)
-                continue;
+        managedMods_.reserve(discoveredMods.size());
 
-            auto [it, inserted] = byId.emplace(
-                discovered.metadata.id,
-                &discovered
-            );
+        std::unordered_map<std::string, std::vector<std::size_t>> ids;
 
-            if (!inserted) {
-                byId.erase(discovered.metadata.id);
+        for (std::size_t i = 0; i < discoveredMods.size(); ++i) {
+            managedMods_.push_back(ManagedMod{
+                discoveredMods[i],
+                ModState::Discovered,
+                {}
+            });
+
+            if (discoveredMods[i].valid) {
+                ids[discoveredMods[i].metadata.id].push_back(i);
             }
         }
 
-        for (const auto& discovered : registry.GetMods()) {
-            ManagedMod managed;
-            managed.discovered = discovered;
-
-            if (!discovered.valid) {
-                managed.state = ModState::Failed;
-                managed.statusMessage = discovered.error;
+        // Reject every occurrence of a duplicated ID.
+        for (const auto& [id, indices] : ids) {
+            if (indices.size() > 1) {
+                for (const auto index : indices) {
+                    managedMods_[index].state = ModState::Failed;
+                    managedMods_[index].statusMessage =
+                        "Duplicate mod ID: " + id;
+                }
             }
-            else if (discovered.metadata.requiredLoaderApi >
-                     LoaderApiVersion) {
+        }
+
+        // Validate metadata and dependencies.
+        std::vector<std::vector<std::size_t>> dependents(
+            discoveredMods.size()
+        );
+
+        std::vector<std::size_t> indegree(
+            discoveredMods.size(), 0
+        );
+
+        for (std::size_t i = 0; i < managedMods_.size(); ++i) {
+            auto& managed = managedMods_[i];
+
+            if (!managed.discovered.valid) {
                 managed.state = ModState::Failed;
                 managed.statusMessage =
-                    "This mod requires a newer Fusion Loader API.";
+                    managed.discovered.error;
+                continue;
+            }
+
+            if (managed.state == ModState::Failed)
+                continue;
+
+            if (managed.discovered.metadata.requiredLoaderApi >
+                LoaderApiVersion) {
+                managed.state = ModState::Failed;
+                managed.statusMessage =
+                    "A newer Fusion Loader API is required.";
+                continue;
+            }
+
+            bool valid = true;
+
+            for (const auto& dependency :
+                 managed.discovered.metadata.dependencies) {
+
+                const auto found = ids.find(dependency.id);
+
+                if (found == ids.end()) {
+                    valid = false;
+                    managed.statusMessage =
+                        "Missing dependency: " + dependency.id;
+                    break;
+                }
+
+                if (found->second.size() != 1) {
+                    valid = false;
+                    managed.statusMessage =
+                        "Dependency has a duplicate ID: " +
+                        dependency.id;
+                    break;
+                }
+
+                const std::size_t dependencyIndex =
+                    found->second.front();
+
+                const auto& dependencyMetadata =
+                    managedMods_[dependencyIndex].discovered.metadata;
+
+                if (!dependency.minimumVersion.empty() &&
+                    !MeetsMinimumVersion(
+                        dependencyMetadata.version,
+                        dependency.minimumVersion)) {
+                    valid = false;
+                    managed.statusMessage =
+                        "Dependency version requirement not met: " +
+                        dependency.id;
+                    break;
+                }
+
+                dependents[dependencyIndex].push_back(i);
+                ++indegree[i];
+            }
+
+            if (valid) {
+                managed.state = ModState::Validated;
+                managed.statusMessage =
+                    "Dependencies validated.";
             }
             else {
-                bool dependenciesValid = true;
+                managed.state = ModState::Failed;
+            }
+        }
 
-                for (const auto& dependency :
-                     discovered.metadata.dependencies) {
-
-                    auto found = byId.find(dependency.id);
-
-                    if (found == byId.end()) {
-                        dependenciesValid = false;
-                        managed.statusMessage =
-                            "Missing or duplicate dependency: " +
-                            dependency.id;
-                        break;
-                    }
-
-                    if (!dependency.minimumVersion.empty() &&
-                        !MeetsMinimumVersion(
-                            found->second->metadata.version,
-                            dependency.minimumVersion)) {
-
-                        dependenciesValid = false;
-                        managed.statusMessage =
-                            "Dependency version is too old: " +
-                            dependency.id;
-                        break;
-                    }
-                }
-
-                if (dependenciesValid) {
-                    managed.state = ModState::Validated;
-                    managed.statusMessage =
-                        "Manifest and dependencies validated.";
-                }
-                else {
-                    managed.state = ModState::Failed;
+        // Exclude invalid mods from the load graph.
+        for (std::size_t i = 0; i < managedMods_.size(); ++i) {
+            if (managedMods_[i].state == ModState::Failed) {
+                for (const auto dependent : dependents[i]) {
+                    if (indegree[dependent] > 0)
+                        --indegree[dependent];
                 }
             }
+        }
 
-            managedMods_.push_back(std::move(managed));
+        // Kahn's topological sorting algorithm.
+        std::vector<std::size_t> ready;
+
+        for (std::size_t i = 0; i < managedMods_.size(); ++i) {
+            if (managedMods_[i].state == ModState::Validated &&
+                indegree[i] == 0) {
+                ready.push_back(i);
+            }
+        }
+
+        while (!ready.empty()) {
+            const std::size_t current = ready.front();
+            ready.erase(ready.begin());
+
+            loadOrder_.push_back(
+                managedMods_[current].discovered.metadata.id
+            );
+
+            for (const auto dependent : dependents[current]) {
+                if (managedMods_[dependent].state !=
+                    ModState::Validated)
+                    continue;
+
+                if (--indegree[dependent] == 0) {
+                    ready.push_back(dependent);
+                }
+            }
+        }
+
+        // Anything still validated but not sorted is blocked
+        // by a dependency cycle.
+        for (auto& managed : managedMods_) {
+            if (managed.state == ModState::Validated) {
+                managed.state = ModState::Failed;
+                managed.statusMessage =
+                    "Dependency cycle detected or mod blocked by a cycle.";
+            }
         }
     }
 
@@ -160,9 +252,16 @@ namespace fusion::loader {
         return managedMods_;
     }
 
+    const std::vector<std::string>&
+    ModLoader::GetLoadOrder() const
+    {
+        return loadOrder_;
+    }
+
     void ModLoader::Clear()
     {
         managedMods_.clear();
+        loadOrder_.clear();
     }
 
 }
