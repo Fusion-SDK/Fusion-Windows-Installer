@@ -39,7 +39,8 @@ public class GameDetectionService
             {
                 return new GameInstall
                 {
-                    GameDirectory = gameDirectory
+                    GameDirectory,
+                    executable
                 };
             }
         }
