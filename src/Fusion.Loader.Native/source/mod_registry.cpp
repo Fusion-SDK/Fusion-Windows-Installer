@@ -1,8 +1,6 @@
 
 #include "fusion/loader/mod_registry.hpp"
-
-#include <fstream>
-#include <sstream>
+#include "fusion/loader/manifest_parser.hpp"
 
 namespace fusion::loader {
 
@@ -11,47 +9,46 @@ namespace fusion::loader {
     {
         Clear();
 
-        if (!std::filesystem::exists(modsDirectory))
-            return true;
+        std::error_code ec;
 
-        if (!std::filesystem::is_directory(modsDirectory))
+        if (!std::filesystem::exists(modsDirectory, ec)) {
+            return !ec;
+        }
+
+        if (ec || !std::filesystem::is_directory(modsDirectory, ec)) {
             return false;
+        }
 
         for (const auto& entry :
-             std::filesystem::directory_iterator(modsDirectory))
+             std::filesystem::directory_iterator(modsDirectory, ec))
         {
-            if (!entry.is_directory())
+            if (ec)
+                return false;
+
+            if (!entry.is_directory(ec) || ec)
                 continue;
 
             DiscoveredMod mod;
             mod.directory = entry.path();
 
-            const auto manifest =
-                mod.directory / "mod.json";
+            const auto manifest = mod.directory / "mod.json";
 
-            if (!std::filesystem::exists(manifest))
-            {
-                mod.error = "Missing mod.json";
+            if (!std::filesystem::exists(manifest, ec) || ec) {
+                mod.error = "Missing mod.json.";
                 mods_.push_back(std::move(mod));
                 continue;
             }
 
-            std::ifstream file(manifest);
+            mod.valid = ParseModManifest(
+                manifest,
+                mod.metadata,
+                mod.error
+            );
 
-            if (!file)
-            {
-                mod.error = "Unable to read mod.json";
-                mods_.push_back(std::move(mod));
-                continue;
-            }
-
-            // JSON parsing will be added with the
-            // dedicated manifest parser.
-            mod.error = "Manifest parser not implemented";
             mods_.push_back(std::move(mod));
         }
 
-        return true;
+        return !ec;
     }
 
     const std::vector<DiscoveredMod>&
