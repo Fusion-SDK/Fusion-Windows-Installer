@@ -1,31 +1,29 @@
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Fusion.Installer.Models;
 
 namespace Fusion.Installer.Services;
 
 public class GameDetectionService
 {
-    public Task<string?> DetectAsync()
+    public Task<GameInstall?> DetectAsync()
     {
         return Task.Run(FindGeometryDash);
     }
 
-    public string? FindGeometryDash()
+    public GameInstall? FindGeometryDash()
     {
         var steamPath = GetSteamInstallPath();
 
         if (string.IsNullOrWhiteSpace(steamPath))
             return null;
 
-        var libraries = GetSteamLibraryPaths(steamPath);
-
-        foreach (var library in libraries)
+        foreach (var library in GetSteamLibraryPaths(steamPath))
         {
-            var gamePath = Path.Combine(
+            var gameDirectory = Path.Combine(
                 library,
                 "steamapps",
                 "common",
@@ -33,12 +31,17 @@ public class GameDetectionService
             );
 
             var executable = Path.Combine(
-                gamePath,
+                gameDirectory,
                 "GeometryDash.exe"
             );
 
             if (File.Exists(executable))
-                return executable;
+            {
+                return new GameInstall
+                {
+                    GameDirectory = gameDirectory
+                };
+            }
         }
 
         return null;
@@ -81,9 +84,7 @@ public class GameDetectionService
             if (!trimmed.StartsWith(
                 "\"path\"",
                 StringComparison.OrdinalIgnoreCase))
-            {
                 continue;
-            }
 
             var parts = trimmed.Split('"');
 
