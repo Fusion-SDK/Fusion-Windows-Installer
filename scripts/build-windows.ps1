@@ -6,6 +6,22 @@ $payload = Join-Path $root "src/Fusion.Setup/payload"
 if (Test-Path $artifacts) { Remove-Item $artifacts -Recurse -Force }
 if (Test-Path $payload) { Remove-Item $payload -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $setupOut, $payload, (Join-Path $payload "Fusion") | Out-Null
+# Build the native Fusion Loader core.
+$nativeBuild = Join-Path $artifacts "FusionLoaderBuild"
+
+cmake -S (Join-Path $root "src/Fusion.Loader.Native") `
+    -B $nativeBuild `
+    -A x64
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Native Fusion Loader configuration failed."
+}
+
+cmake --build $nativeBuild --config Release --parallel
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Native Fusion Loader build failed."
+}
 Set-Content -Path (Join-Path $payload "Fusion/update-source.txt") -Value "" -NoNewline
 
 $runtime = "win-x64"
