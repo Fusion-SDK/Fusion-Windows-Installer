@@ -103,17 +103,21 @@ endif()
 
 
 if(WIN32)
-    add_executable(FusionLauncher
-        source/launcher.cpp
+    # Geometry Dash imports XInput1_4 on current 64-bit Windows builds. This
+    # proxy forwards the real system API and loads FusionBootstrap in-process.
+    add_library(FusionXInputProxy SHARED
+        source/xinput_proxy.cpp
+        source/XInput1_4.def
     )
-    target_compile_features(FusionLauncher PRIVATE cxx_std_20)
-    set_target_properties(FusionLauncher PROPERTIES
+    target_compile_features(FusionXInputProxy PRIVATE cxx_std_20)
+    set_target_properties(FusionXInputProxy PROPERTIES
         CXX_EXTENSIONS OFF
-        OUTPUT_NAME "Fusion.Launcher"
+        OUTPUT_NAME "XInput1_4"
     )
     if(MSVC)
-        target_compile_options(FusionLauncher PRIVATE /W4 /permissive-)
+        target_compile_options(FusionXInputProxy PRIVATE /W4 /permissive-)
     else()
-        target_compile_options(FusionLauncher PRIVATE -Wall -Wextra -Wpedantic)
+        target_compile_options(FusionXInputProxy PRIVATE -Wall -Wextra -Wpedantic)
     endif()
+
 endif()
