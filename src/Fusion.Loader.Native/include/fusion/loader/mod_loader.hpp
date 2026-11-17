@@ -11,6 +11,7 @@ namespace fusion::loader {
     enum class ModState {
         Discovered,
         Validated,
+        Planned,
         Disabled,
         Failed
     };
