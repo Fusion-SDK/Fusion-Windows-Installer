@@ -1,3 +1,4 @@
+[README.md](https://github.com/user-attachments/files/34994376/README.md)
 # Fusion — Windows Installer
 
 **The official Windows installer for Fusion, a Geometry Dash modding platform.**
@@ -10,82 +11,43 @@ It is designed to run directly alongside [Geometry Dash](https://store.steampowe
 
 ## Architecture
 
-- **Fusion Bootstrap** - Starts Fusion's native integration with Geometry Dash.
-- **Fusion Loader** - Discovers, validates, and loads Fusion mods.
-- **Fusion SDK** - Provides APIs for developers building Fusion mods.
-- **Fusion Mod Catalog** - Provides mod discovery and distribution.
-- **Fusion Setup** - Installs and updates Fusion components.
+- **Fusion Bootstrap and Loader** — native startup and mod lifecycle infrastructure.
+- **Fusion SDK** — the current native C plugin contract.
+- **Fusion Setup, Updater, and Uninstaller** — install and maintain Fusion-owned files.
+- **Fusion Catalog** — Supabase-backed account and approved-mod catalog foundation.
+- **In-game integration** — planned Geometry Dash adapter and Fusion menu; not yet implemented.
 
-Fusion is not a seperate desktop mod manager. Its mod experience is intended to run inside [GeometryDash](https://store.steampowered.com/app/322170/Geometry_Dash/).
+Fusion is not intended to require a separate desktop mod manager. The setup and
+maintenance tools are separate Windows utilities, while mod management is intended
+to happen inside Geometry Dash.
 
 ## Compatibility
 
-Fusion mods use the Fusion SDK and native package format.
+Fusion-native mods do not require Geode. Fusion's current native runtime does not
+yet provide general Geode binary compatibility. Supporting selected Geode mods
+without installing Geode requires a Fusion-owned compatibility host for the
+Geode APIs those mods use. Compatibility must be verified per mod and game build;
+it cannot be promised for every Geode mod automatically. See
+[Geode compatibility design](docs/GEODE_COMPATIBILITY.md).
 
-Geode mods are not automatically compatible with Fusion.
-A mod developer must provide a native Fusion implementation
-or a separately maintained Fusion-compatible package.
+## Current status
+
+The repository includes native mod discovery, dependency-aware load planning,
+mod lifecycle support, and settings persistence. The settings store now supports
+named profiles and keybind assignments, including migration from the earlier
+settings format. These settings are not yet connected to an in-game menu.
+
+Automatic loading from the normal Steam Play action, the Geometry Dash game API
+adapter, the in-game Fusion menu, additional language runtimes, complete online
+package delivery/ratings, and the Geode compatibility host remain development
+work. The current launcher-based bootstrap is not the requested final Steam
+autostart experience. See [the Windows completion plan](docs/WINDOWS_PLATFORM_ROADMAP.md).
 
 ## Requirements
 
-- Windows
-- A supported Geometry Dash installation
-- Fusion's own native integration
-
-Geode is not required.
-
-
-## About Fusion
-
-Fusion is an independent Geometry Dash modding ecosystem designed to bring mod discovery, installation, and management together in one place.
-
-The Windows Installer is the entry point to the Fusion experience.
-
-### Planned Features
-
-- **Fusion Setup** — A dedicated Windows installation experience.
-- **Game Detection** — Locate supported Geometry Dash installations.
-- **Mod Discovery** — Browse community-created mods.
-- **Mod Management** — Manage installed mods from one application.
-- **Fusion SDK Integration** — Support for developers building Fusion-compatible mods.
-- **Account Integration** — Connect with the Fusion ecosystem.
-
-*Features are subject to development and may not yet be available.*
-
----
-
-## Platform Support
-
-| Platform | Support |
-|---|---|
-| Windows Steam Geometry Dash | Planned |
-
----
-
-## Project Status
-
-<badge>In Development</badge>
-
-Fusion Circle is actively being developed. Features, interfaces, and compatibility may change as development progresses.
-
-This repository focuses on the Windows installer and its associated application.
-
----
-
-## For Developers
-
-We welcome developers interested in contributing to Fusion.
-
-You can help with:
-- Windows application development
-- Installer development
-- UI/UX improvements
-- Testing and bug reporting
-- Documentation
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting contributions.
-
----
+- Windows x64
+- Steam Geometry Dash (the exact supported game build will be recorded per release)
+- Geode is not required for Fusion-native mods
 
 ## Bug Reports & Suggestions
 
