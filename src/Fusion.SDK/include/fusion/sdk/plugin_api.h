@@ -29,6 +29,8 @@ typedef struct FusionHostApi {
         const char* message
     );
 
+    const FusionGameApi* game;
+
 } FusionHostApi;
 
 typedef struct FusionModInfo {
@@ -48,6 +50,18 @@ typedef int32_t (*FusionModLoadFn)(
 );
 
 typedef void (*FusionModUnloadFn)(void);
+
+typedef struct FusionGameApi {
+    uint32_t struct_size;
+    uint32_t api_version;
+
+    // Returns the Geometry Dash version as a string.
+    const char* (*get_game_version)(void);
+
+    // Returns whether the game integration is ready.
+    int32_t (*is_game_ready)(void);
+
+} FusionGameApi;
 
 typedef struct FusionModApi {
     uint32_t struct_size;
