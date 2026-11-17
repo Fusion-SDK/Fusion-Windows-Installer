@@ -79,13 +79,25 @@ namespace fusion::loader {
 
     }
 
+    void ModLoader::BuildLoadPlan(const ModRegistry& registry)
+    {
+        BuildLoadPlanInternal(registry, nullptr);
+    }
+
     void ModLoader::BuildLoadPlan(
-        const ModRegistry& registry)
+        const ModRegistry& registry,
+        const ModSettingsStore& settings)
+    {
+        BuildLoadPlanInternal(registry, &settings);
+    }
+
+    void ModLoader::BuildLoadPlanInternal(
+        const ModRegistry& registry,
+        const ModSettingsStore* settings)
     {
         Clear();
 
         const auto& discoveredMods = registry.GetMods();
-
         managedMods_.reserve(discoveredMods.size());
 
         std::unordered_map<std::string, std::vector<std::size_t>> ids;
@@ -113,27 +125,43 @@ namespace fusion::loader {
             }
         }
 
-        // Validate metadata and dependencies.
+        // Apply saved preferences before dependency validation.
+        for (auto& managed : managedMods_) {
+            if (!managed.discovered.valid ||
+                managed.state == ModState::Failed) {
+                continue;
+            }
+
+            const auto& id = managed.discovered.metadata.id;
+            if (settings && !settings->IsEnabled(id)) {
+                managed.state = ModState::Disabled;
+                managed.statusMessage = "Disabled by user settings.";
+            }
+        }
+
         std::vector<std::vector<std::size_t>> dependents(
             discoveredMods.size()
         );
-
         std::vector<std::size_t> indegree(
             discoveredMods.size(), 0
         );
 
+        // Validate dependencies for enabled mods and construct the
+        // dependency graph. A mod depending on a disabled/invalid mod
+        // is blocked rather than loaded in an inconsistent state.
         for (std::size_t i = 0; i < managedMods_.size(); ++i) {
             auto& managed = managedMods_[i];
 
             if (!managed.discovered.valid) {
                 managed.state = ModState::Failed;
-                managed.statusMessage =
-                    managed.discovered.error;
+                managed.statusMessage = managed.discovered.error;
                 continue;
             }
 
-            if (managed.state == ModState::Failed)
+            if (managed.state == ModState::Failed ||
+                managed.state == ModState::Disabled) {
                 continue;
+            }
 
             if (managed.discovered.metadata.requiredLoaderApi >
                 LoaderApiVersion) {
@@ -147,7 +175,6 @@ namespace fusion::loader {
 
             for (const auto& dependency :
                  managed.discovered.metadata.dependencies) {
-
                 const auto found = ids.find(dependency.id);
 
                 if (found == ids.end()) {
@@ -167,9 +194,27 @@ namespace fusion::loader {
 
                 const std::size_t dependencyIndex =
                     found->second.front();
+                const auto& dependencyMod =
+                    managedMods_[dependencyIndex];
+
+                if (dependencyMod.state == ModState::Disabled) {
+                    valid = false;
+                    managed.statusMessage =
+                        "Required dependency is disabled: " +
+                        dependency.id;
+                    break;
+                }
+
+                if (dependencyMod.state == ModState::Failed) {
+                    valid = false;
+                    managed.statusMessage =
+                        "Required dependency is invalid: " +
+                        dependency.id;
+                    break;
+                }
 
                 const auto& dependencyMetadata =
-                    managedMods_[dependencyIndex].discovered.metadata;
+                    dependencyMod.discovered.metadata;
 
                 if (!dependency.minimumVersion.empty() &&
                     !MeetsMinimumVersion(
@@ -188,27 +233,14 @@ namespace fusion::loader {
 
             if (valid) {
                 managed.state = ModState::Validated;
-                managed.statusMessage =
-                    "Dependencies validated.";
+                managed.statusMessage = "Dependencies validated.";
             }
             else {
                 managed.state = ModState::Failed;
             }
         }
 
-        // Exclude invalid mods from the load graph.
-        for (std::size_t i = 0; i < managedMods_.size(); ++i) {
-            if (managedMods_[i].state == ModState::Failed) {
-                for (const auto dependent : dependents[i]) {
-                    if (indegree[dependent] > 0)
-                        --indegree[dependent];
-                }
-            }
-        }
-
         // Kahn's topological sorting algorithm.
-        // Track ordered mods separately from ModState so the enum
-        // continues to represent validation/runtime status only.
         std::vector<bool> ordered(managedMods_.size(), false);
         std::vector<std::size_t> ready;
 
@@ -219,32 +251,31 @@ namespace fusion::loader {
             }
         }
 
-        while (!ready.empty()) {
-            const std::size_t current = ready.front();
-            ready.erase(ready.begin());
+        std::size_t nextReady = 0;
+        while (nextReady < ready.size()) {
+            const std::size_t current = ready[nextReady++];
 
             loadOrder_.push_back(
                 managedMods_[current].discovered.metadata.id
             );
-
-            // Record successful ordering separately from ModState.
             ordered[current] = true;
-            managedMods_[current].statusMessage =
-                "Ready to load.";
+            managedMods_[current].statusMessage = "Ready to load.";
 
             for (const auto dependent : dependents[current]) {
                 if (managedMods_[dependent].state !=
-                    ModState::Validated)
+                    ModState::Validated) {
                     continue;
+                }
 
-                if (--indegree[dependent] == 0) {
+                if (indegree[dependent] > 0 &&
+                    --indegree[dependent] == 0) {
                     ready.push_back(dependent);
                 }
             }
         }
 
-        // Anything still validated but not sorted is blocked
-        // by a dependency cycle.
+        // Any enabled mod not sorted is blocked by a dependency cycle
+        // or depends on a mod that could not be sorted.
         for (std::size_t i = 0; i < managedMods_.size(); ++i) {
             auto& managed = managedMods_[i];
             if (managed.state == ModState::Validated && !ordered[i]) {
