@@ -32,7 +32,8 @@ namespace fusion::loader {
         const FusionHostApi HostApi{
             sizeof(FusionHostApi),
             FUSION_MOD_API_VERSION,
-            &HostLog
+            &HostLog,
+            nullptr // Game API remains unavailable until a versioned GD adapter exists.
         };
 
         bool IsPathInside(
