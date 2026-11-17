@@ -37,11 +37,13 @@ mod lifecycle support, and settings persistence. The settings store now supports
 named profiles and keybind assignments, including migration from the earlier
 settings format. These settings are not yet connected to an in-game menu.
 
-Automatic loading from the normal Steam Play action, the Geometry Dash game API
-adapter, the in-game Fusion menu, additional language runtimes, complete online
-package delivery/ratings, and the Geode compatibility host remain development
-work. The current launcher-based bootstrap is not the requested final Steam
-autostart experience. See [the Windows completion plan](docs/WINDOWS_PLATFORM_ROADMAP.md).
+The Windows package now includes an XInput1_4 proxy intended to load the native
+bootstrap in-process when Geometry Dash starts normally through Steam. It
+forwards XInput calls to the system DLL. This startup integration still needs
+validation on the target Steam game build and alongside other proxy-based mods.
+The Geometry Dash game API adapter, in-game Fusion menu, additional language
+runtimes, complete online package delivery/ratings, and Geode compatibility host
+remain development work. See [the Windows completion plan](docs/WINDOWS_PLATFORM_ROADMAP.md).
 
 ## Requirements
 
