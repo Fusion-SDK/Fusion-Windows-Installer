@@ -1,47 +1,105 @@
 $ErrorActionPreference = "Stop"
+
 $root = Split-Path -Parent $PSScriptRoot
 $artifacts = Join-Path $root "artifacts"
-$setupOut = Join-Path $artifacts "Fusion-Setup"
-$payload = Join-Path $root "src/Fusion.Setup/payload"
-if (Test-Path $artifacts) { Remove-Item $artifacts -Recurse -Force }
-if (Test-Path $payload) { Remove-Item $payload -Recurse -Force }
-New-Item -ItemType Directory -Force -Path $setupOut, $payload, (Join-Path $payload "Fusion") | Out-Null
-# Build the native Fusion Loader core.
+$packageRoot = Join-Path $artifacts "Fusion-Package"
+$payload = Join-Path $packageRoot "payload"
+$fusionPayload = Join-Path $payload "Fusion"
+$runtime = "win-x64"
+
+if (Test-Path $artifacts) {
+    Remove-Item $artifacts -Recurse -Force
+}
+
+New-Item -ItemType Directory -Force -Path $packageRoot, $payload, $fusionPayload | Out-Null
+
+function Publish-FusionProject {
+    param(
+        [Parameter(Mandatory = $true)][string]$Project,
+        [Parameter(Mandatory = $true)][string]$Output,
+        [string[]]$AdditionalArguments = @()
+    )
+
+    $projectPath = Join-Path $root $Project
+    dotnet publish $projectPath --configuration Release @AdditionalArguments --output $Output
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Publish failed: $Project"
+    }
+}
+
+# Build the native loader core for validation and future runtime integration.
+# This currently produces a static library, not a Geometry Dash plugin, so it
+# is deliberately not copied into the installer's runtime payload.
 $nativeBuild = Join-Path $artifacts "FusionLoaderBuild"
-
-cmake -S (Join-Path $root "src/Fusion.Loader.Native") `
-    -B $nativeBuild `
-    -A x64
-
+cmake -S (Join-Path $root "src/Fusion.Loader.Native") -B $nativeBuild -A x64
 if ($LASTEXITCODE -ne 0) {
     throw "Native Fusion Loader configuration failed."
 }
 
 cmake --build $nativeBuild --config Release --parallel
-
 if ($LASTEXITCODE -ne 0) {
     throw "Native Fusion Loader build failed."
 }
-Set-Content -Path (Join-Path $payload "Fusion/update-source.txt") -Value "" -NoNewline
 
-$runtime = "win-x64"
+# Main Fusion desktop application and managed loader contract.
+Publish-FusionProject `
+    -Project "src/Fusion.Installer/Fusion.Installer.csproj" `
+    -Output $fusionPayload `
+    -AdditionalArguments @("--runtime", $runtime, "--self-contained", "true", "-p:PublishSingleFile=true")
+
+Publish-FusionProject `
+    -Project "src/Fusion.Loader/Fusion.Loader.csproj" `
+    -Output $fusionPayload
+
+# Supporting tools are installed beside the Fusion directory.
 foreach ($project in @(
-  @{ Path="src/Fusion.Updater/Fusion.Updater.csproj"; Name="Fusion.Updater" },
-  @{ Path="src/Fusion.Uninstaller/Fusion.Uninstaller.csproj"; Name="Fusion.Uninstaller" }
+    @{ Path = "src/Fusion.Updater/Fusion.Updater.csproj"; Name = "Fusion.Updater" },
+    @{ Path = "src/Fusion.Uninstaller/Fusion.Uninstaller.csproj"; Name = "Fusion.Uninstaller" }
 )) {
-  $out = Join-Path $artifacts $project.Name
-  dotnet publish (Join-Path $root $project.Path) -c Release -r $runtime --self-contained true -p:PublishSingleFile=true -o $out
-  if ($LASTEXITCODE -ne 0) { throw "Publish failed: $($project.Name)" }
-  Copy-Item (Join-Path $out "$($project.Name).exe") (Join-Path $payload "$($project.Name).exe") -Force
+    $output = Join-Path $artifacts $project.Name
+    Publish-FusionProject `
+        -Project $project.Path `
+        -Output $output `
+        -AdditionalArguments @("--runtime", $runtime, "--self-contained", "true", "-p:PublishSingleFile=true")
+
+    $executable = Join-Path $output "$($project.Name).exe"
+    if (!(Test-Path $executable)) {
+        throw "Expected executable was not produced: $executable"
+    }
+
+    Copy-Item $executable (Join-Path $payload "$($project.Name).exe") -Force
 }
 
-# The loader contract is shipped as data only; it is not a native game plugin.
-dotnet publish (Join-Path $root "src/Fusion.Loader/Fusion.Loader.csproj") -c Release -o (Join-Path $payload "Fusion")
-if ($LASTEXITCODE -ne 0) { throw "Publish failed: Fusion.Loader" }
+# Publish the setup host separately, then place it beside its payload so
+# AppContext.BaseDirectory/payload resolves correctly when NSIS extracts it.
+$setupOutput = Join-Path $artifacts "Fusion-SetupHost"
+Publish-FusionProject `
+    -Project "src/Fusion.Setup/Fusion.Setup.csproj" `
+    -Output $setupOutput `
+    -AdditionalArguments @("--runtime", $runtime, "--self-contained", "true", "-p:PublishSingleFile=true")
 
-$setupOutDir = Join-Path $artifacts "Fusion-SetupHost"
-dotnet publish (Join-Path $root "src/Fusion.Setup/Fusion.Setup.csproj") -c Release -r $runtime --self-contained true -p:PublishSingleFile=true -o $setupOutDir
-if ($LASTEXITCODE -ne 0) { throw "Publish failed: Fusion.Setup" }
-Copy-Item (Join-Path $setupOutDir "Fusion.Setup.exe") (Join-Path $setupOut "Fusion-Setup.exe") -Force
-Copy-Item (Join-Path $setupOutDir "payload") (Join-Path $setupOut "payload") -Recurse -Force
-Write-Host "Created $setupOut/Fusion-Setup.exe"
+$setupExecutable = Join-Path $setupOutput "Fusion.Setup.exe"
+if (!(Test-Path $setupExecutable)) {
+    throw "Fusion.Setup.exe was not produced."
+}
+Copy-Item $setupExecutable (Join-Path $packageRoot "Fusion.Setup.exe") -Force
+
+# Validate the exact layout expected by Fusion.Setup before packaging.
+$requiredFiles = @(
+    (Join-Path $packageRoot "Fusion.Setup.exe"),
+    (Join-Path $payload "Fusion.Updater.exe"),
+    (Join-Path $payload "Fusion.Uninstaller.exe"),
+    (Join-Path $fusionPayload "Fusion.Installer.exe"),
+    (Join-Path $fusionPayload "Fusion.Loader.dll")
+)
+
+$missingFiles = $requiredFiles | Where-Object { !(Test-Path $_) }
+if ($missingFiles.Count -gt 0) {
+    throw "Installer package is incomplete. Missing files:`n$($missingFiles -join "`n")"
+}
+
+Write-Host "Fusion installer package assembled successfully: $packageRoot"
+Get-ChildItem $packageRoot -Recurse -File | ForEach-Object {
+    Write-Host (Resolve-Path -Relative $_.FullName)
+}
