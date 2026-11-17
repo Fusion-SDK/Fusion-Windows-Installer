@@ -67,6 +67,7 @@ endif()
 
 add_library(FusionBootstrap SHARED
     source/bootstrap_api.cpp
+    source/bootstrap_entry.cpp
 )
 
 target_include_directories(FusionBootstrap
@@ -99,3 +100,20 @@ else()
     )
 endif()
 
+
+
+if(WIN32)
+    add_executable(FusionLauncher
+        source/launcher.cpp
+    )
+    target_compile_features(FusionLauncher PRIVATE cxx_std_20)
+    set_target_properties(FusionLauncher PROPERTIES
+        CXX_EXTENSIONS OFF
+        OUTPUT_NAME "Fusion.Launcher"
+    )
+    if(MSVC)
+        target_compile_options(FusionLauncher PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(FusionLauncher PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endif()
