@@ -2,6 +2,64 @@
 
 # Fusion Windows architecture
 
+
+## Overview
+
+Fusion is a standalone Geometry Dash modding platform.
+
+It does not require Geode and does not use a separate
+desktop application as its mod-management interface.
+
+## Components
+
+### Fusion Setup
+
+Responsible for installing, updating, and removing Fusion.
+
+It is not the mod manager.
+
+### Fusion Bootstrap
+
+Responsible for establishing Fusion's integration with
+Geometry Dash and starting the Fusion runtime.
+
+This component must be implemented and tested before
+Fusion can be considered functional inside the game.
+
+### Fusion Loader
+
+Responsible for:
+
+- Mod discovery
+- Manifest validation
+- Dependency resolution
+- Enabled/disabled preferences
+- Native mod initialization
+- Mod shutdown
+- Runtime error reporting
+
+### Fusion SDK
+
+Provides the public API used by developers to create
+Fusion-compatible mods.
+
+## Mod Compatibility
+
+Fusion is independent of Geode.
+
+A Geode mod does not automatically work with Fusion.
+Developers must provide a Fusion-compatible implementation.
+
+A project may publish separate Fusion and Geode packages.
+
+## Runtime Requirements
+
+The native loader must be initialized by Fusion's own
+Geometry Dash integration.
+
+The loader must not be advertised as working in-game
+until that integration is implemented and tested.
+
 ## Current package layout
 
 - `Fusion.Setup.exe`: user-facing setup wizard; detects/selects the Steam Geometry Dash folder.
