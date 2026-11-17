@@ -21,6 +21,7 @@ add_library(FusionLoaderCore STATIC
     source/manifest_parser.cpp
     source/mod_registry.cpp
     source/mod_loader.cpp
+    source/mod_runtime.cpp
     source/package_manager.cpp
 )
 
@@ -31,6 +32,15 @@ target_include_directories(FusionLoaderCore
 
 target_link_libraries(FusionLoaderCore
     PRIVATE nlohmann_json::nlohmann_json
+)
+
+if(NOT WIN32)
+    target_link_libraries(FusionLoaderCore PRIVATE ${CMAKE_DL_LIBS})
+endif()
+
+target_include_directories(FusionLoaderCore
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Fusion.SDK/include
 )
 
 target_compile_features(FusionLoaderCore PUBLIC cxx_std_20)
