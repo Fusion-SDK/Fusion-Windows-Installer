@@ -20,6 +20,8 @@ typedef enum FusionLogLevel {
     FUSION_LOG_ERROR = 2
 } FusionLogLevel;
 
+typedef struct FusionGameApi FusionGameApi;
+
 typedef struct FusionHostApi {
     uint32_t struct_size;
     uint32_t api_version;
@@ -51,7 +53,7 @@ typedef int32_t (*FusionModLoadFn)(
 
 typedef void (*FusionModUnloadFn)(void);
 
-typedef struct FusionGameApi {
+struct FusionGameApi {
     uint32_t struct_size;
     uint32_t api_version;
 
@@ -61,7 +63,7 @@ typedef struct FusionGameApi {
     // Returns whether the game integration is ready.
     int32_t (*is_game_ready)(void);
 
-} FusionGameApi;
+};
 
 typedef struct FusionModApi {
     uint32_t struct_size;
