@@ -38,7 +38,7 @@ public partial class MainWindow : Window
 
         var required = new[]
         {
-            "Fusion.Launcher.exe",
+            "XInput1_4.dll",
             "Fusion.Updater.exe",
             "Fusion.Uninstaller.exe",
             Path.Combine("Fusion", "Fusion.Loader.dll"),
@@ -57,6 +57,26 @@ public partial class MainWindow : Window
             Directory.CreateDirectory(fusionDir);
             Directory.CreateDirectory(Path.Combine(fusionDir, "mods"));
             var installed = new List<string>();
+            var previousManifest = Path.Combine(fusionDir, "installed-files.json");
+            var wasFusionProxyInstalled = false;
+            if (File.Exists(previousManifest))
+            {
+                try
+                {
+                    var previousFiles = System.Text.Json.JsonSerializer.Deserialize<List<string>>(
+                        await File.ReadAllTextAsync(previousManifest)) ?? [];
+                    wasFusionProxyInstalled = previousFiles.Contains("XInput1_4.dll", StringComparer.OrdinalIgnoreCase);
+                }
+                catch { /* A malformed old manifest must not block a fresh install. */ }
+            }
+
+            var proxyPath = Path.Combine(target, "XInput1_4.dll");
+            var proxyBackup = Path.Combine(target, "XInput1_4.dll.fusion-backup");
+            if (File.Exists(proxyPath) && !wasFusionProxyInstalled && !File.Exists(proxyBackup))
+            {
+                File.Copy(proxyPath, proxyBackup, false);
+                installed.Add("XInput1_4.dll.fusion-backup");
+            }
 
             foreach (var file in Directory.GetFiles(payload, "*", SearchOption.AllDirectories))
             {
@@ -71,7 +91,7 @@ public partial class MainWindow : Window
                     if (!destination.StartsWith(safeRoot, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidDataException("Invalid package path.");
                 }
-                else if (normalized is not "Fusion.Launcher.exe" and not "Fusion.Updater.exe" and not "Fusion.Uninstaller.exe")
+                else if (normalized is not "XInput1_4.dll" and not "Fusion.Updater.exe" and not "Fusion.Uninstaller.exe")
                 {
                     continue;
                 }
@@ -81,18 +101,18 @@ public partial class MainWindow : Window
                 installed.Add(normalized);
             }
 
-            // Record every Fusion-owned file, including the root-level launcher,
-            // so the uninstaller can remove it without touching game-owned files.
+            // Record the proxy and Fusion-owned files so uninstall can restore a
+            // pre-existing XInput proxy rather than leaving the game without it.
             await File.WriteAllTextAsync(
                 Path.Combine(fusionDir, "installed-files.json"),
                 System.Text.Json.JsonSerializer.Serialize(installed,
                     new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
 
-            StatusText.Text = "Fusion installed. Launch Geometry Dash using Fusion.Launcher.exe to load the bootstrap.";
+            StatusText.Text = "Fusion's startup proxy is installed. Launch Geometry Dash normally through Steam.";
             StepTitle.Text = "Installation complete";
-            StepDescription.Text = "Fusion's bootstrap is installed. Use Fusion.Launcher.exe beside GeometryDash.exe to start the game with Fusion loaded.";
+            StepDescription.Text = "Fusion is configured to load inside Geometry Dash when you press Play in Steam.";
             MessageBox.Show(
-                "Fusion was installed. Start Geometry Dash with Fusion.Launcher.exe in the game folder. The bootstrap loads the native mod runtime; game-specific hooks and the in-game menu are not included yet.",
+                "Fusion's XInput startup proxy and native bootstrap were installed. Launch Geometry Dash normally through Steam. The in-game menu and version-specific game API are still under development.",
                 "Fusion Setup", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
