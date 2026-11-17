@@ -141,6 +141,25 @@ namespace fusion::loader {
         Shutdown();
         results_.clear();
 
+        // Surface disabled and validation-failed entries in the runtime
+        // status list. Only IDs in the load order are eligible to load.
+        for (const auto& managed : loadPlan.GetManagedMods()) {
+            if (managed.state == ModState::Disabled) {
+                results_.push_back(RuntimeModResult{
+                    managed.discovered.metadata.id,
+                    RuntimeModState::Disabled,
+                    managed.statusMessage
+                });
+            }
+            else if (managed.state == ModState::Failed) {
+                results_.push_back(RuntimeModResult{
+                    managed.discovered.metadata.id,
+                    RuntimeModState::Failed,
+                    managed.statusMessage
+                });
+            }
+        }
+
         for (const auto& id : loadPlan.GetLoadOrder()) {
             const auto found = std::find_if(
                 registry.GetMods().begin(), registry.GetMods().end(),
@@ -243,7 +262,8 @@ namespace fusion::loader {
         running_ = !loaded_.empty();
         return std::all_of(results_.begin(), results_.end(),
             [](const RuntimeModResult& result) {
-                return result.state == RuntimeModState::Loaded;
+                return result.state == RuntimeModState::Loaded ||
+                    result.state == RuntimeModState::Disabled;
             });
     }
 
