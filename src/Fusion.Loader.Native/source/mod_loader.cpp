@@ -207,6 +207,9 @@ namespace fusion::loader {
         }
 
         // Kahn's topological sorting algorithm.
+        // Track ordered mods separately from ModState so the enum
+        // continues to represent validation/runtime status only.
+        std::vector<bool> ordered(managedMods_.size(), false);
         std::vector<std::size_t> ready;
 
         for (std::size_t i = 0; i < managedMods_.size(); ++i) {
@@ -224,9 +227,8 @@ namespace fusion::loader {
                 managedMods_[current].discovered.metadata.id
             );
 
-            // Mark successfully ordered mods so the final pass only
-            // rejects nodes that were actually blocked by a cycle.
-            managedMods_[current].state = ModState::ReadyToLoad;
+            // Record successful ordering separately from ModState.
+            ordered[current] = true;
             managedMods_[current].statusMessage =
                 "Ready to load.";
 
@@ -243,8 +245,9 @@ namespace fusion::loader {
 
         // Anything still validated but not sorted is blocked
         // by a dependency cycle.
-        for (auto& managed : managedMods_) {
-            if (managed.state == ModState::Validated) {
+        for (std::size_t i = 0; i < managedMods_.size(); ++i) {
+            auto& managed = managedMods_[i];
+            if (managed.state == ModState::Validated && !ordered[i]) {
                 managed.state = ModState::Failed;
                 managed.statusMessage =
                     "Dependency cycle detected or mod blocked by a cycle.";
