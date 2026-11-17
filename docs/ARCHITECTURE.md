@@ -31,18 +31,17 @@ individually; a manifest label alone does not provide a runtime.
 
 ## Startup integration requirement
 
-The current repository builds `FusionBootstrap.dll` and a `Fusion.Launcher.exe`.
-The launcher-based bootstrap is not equivalent to automatic Steam startup.
-The installer currently tells users to start Geometry Dash through the helper.
-The requested product behavior is to press Play in Steam and have Fusion load
-without a separate launcher.
-
-That requires a tested Windows startup integration for the exact Geometry Dash
-Steam build (for example, a compatible proxy/module-loading integration or
-another supported startup mechanism). This repository does not yet implement
-or validate that Steam-native startup path. Do not claim automatic Steam
-loading until it has been tested on a clean Steam installation and verified
-not to replace or corrupt game-owned files.
+The Windows build includes an `XInput1_4.dll` proxy. Geometry Dash's process
+loads the proxy through its normal XInput import, and the proxy forwards XInput
+exports to the real System32 DLL while loading `Fusion\FusionBootstrap.dll`
+in-process. This avoids a separate launcher and does not patch the game EXE.
+The proxy path must be validated against each target game build and may conflict
+with another mod loader that already owns the same proxy filename.
+The XInput proxy path is implemented in the Windows build, but it must be
+validated against the exact Steam game build and alongside other proxy-based
+mods. The installer backs up an existing `XInput1_4.dll` and the uninstaller
+restores it. A proxy filename collision with another loader remains a known
+compatibility concern; do not claim universal coexistence until tested.
 
 ## Game integration and menu
 
