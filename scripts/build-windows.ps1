@@ -28,9 +28,8 @@ function Publish-FusionProject {
     }
 }
 
-# Build the native loader core for validation and future runtime integration.
-# This currently produces a static library, not a Geometry Dash plugin, so it
-# is deliberately not copied into the installer's runtime payload.
+# Build the native loader core, in-process bootstrap DLL, and the small
+# launcher that starts Geometry Dash with FusionBootstrap loaded first.
 $nativeBuild = Join-Path $artifacts "FusionLoaderBuild"
 cmake -S (Join-Path $root "src/Fusion.Loader.Native") -B $nativeBuild -A x64
 if ($LASTEXITCODE -ne 0) {
@@ -41,6 +40,15 @@ cmake --build $nativeBuild --config Release --parallel
 if ($LASTEXITCODE -ne 0) {
     throw "Native Fusion Loader build failed."
 }
+
+$nativeRelease = Join-Path $nativeBuild "Release"
+$bootstrapDll = Join-Path $nativeRelease "FusionBootstrap.dll"
+$launcherExe = Join-Path $nativeRelease "Fusion.Launcher.exe"
+if (!(Test-Path $bootstrapDll) -or !(Test-Path $launcherExe)) {
+    throw "Native bootstrap or launcher output is missing."
+}
+Copy-Item $bootstrapDll (Join-Path $fusionPayload "FusionBootstrap.dll") -Force
+Copy-Item $launcherExe (Join-Path $payload "Fusion.Launcher.exe") -Force
 
 # Main Fusion desktop application and managed loader contract.
 Publish-FusionProject `
@@ -88,6 +96,8 @@ Copy-Item $setupExecutable (Join-Path $packageRoot "Fusion.Setup.exe") -Force
 # Validate the exact layout expected by Fusion.Setup before packaging.
 $requiredFiles = @(
     (Join-Path $packageRoot "Fusion.Setup.exe"),
+    (Join-Path $payload "Fusion.Launcher.exe"),
+    (Join-Path $fusionPayload "FusionBootstrap.dll"),
     (Join-Path $payload "Fusion.Updater.exe"),
     (Join-Path $payload "Fusion.Uninstaller.exe"),
     (Join-Path $fusionPayload "Fusion.Installer.exe"),
