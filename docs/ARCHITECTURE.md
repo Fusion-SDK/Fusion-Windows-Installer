@@ -1,147 +1,96 @@
-[ARCHITECTURE.md](https://github.com/user-attachments/files/34988448/ARCHITECTURE.md)
+[ARCHITECTURE.md](https://github.com/user-attachments/files/34994196/ARCHITECTURE.md)
+# Fusion for Windows architecture
 
+## Product requirements
 
-# Fusion Windows architecture
+Fusion is an independent Geometry Dash modding platform for Steam on Windows.
+It must not require Geode, and its mod-management experience belongs inside
+Geometry Dash rather than in a separate desktop manager. The Windows setup,
+updater, and uninstaller remain companion maintenance tools.
 
+The target feature set includes an in-game mod browser and manager, profiles,
+keybinds, dependency management, troubleshooting, online accounts, catalog
+ratings, downloads, and updates. Runtime support is intended to cover the
+languages and plugin systems used by Fusion, with native C++ as the current
+implemented path. Additional language runtimes must be added and tested
+individually; a manifest label alone does not provide a runtime.
 
-## Overview
+## Existing components
 
-Fusion is a standalone Geometry Dash modding platform.
+- **Fusion.Setup:** installs Fusion-owned files into the selected Geometry Dash
+  directory without replacing original game files.
+- **Fusion.Updater:** verifies HTTPS release manifests and SHA-256 file hashes.
+- **Fusion.Uninstaller:** removes only files recorded in the Fusion-owned
+  installation manifest.
+- **Fusion Loader Native:** discovers manifests, validates dependencies,
+  resolves load order, reads settings, and loads native mod libraries.
+- **Fusion SDK:** defines the current native C plugin contract.
+- **Fusion Installer:** contains account and catalog UI/service code. It is a
+  maintenance/catalog companion, not the in-game mod manager.
+- **Supabase:** provides the initial account/catalog schema and auth integration.
 
-It does not require Geode and does not use a separate
-desktop application as its mod-management interface.
+## Startup integration requirement
 
-## Components
+The current repository builds `FusionBootstrap.dll` and a `Fusion.Launcher.exe`.
+The launcher-based bootstrap is not equivalent to automatic Steam startup.
+The installer currently tells users to start Geometry Dash through the helper.
+The requested product behavior is to press Play in Steam and have Fusion load
+without a separate launcher.
 
-### Fusion Setup
+That requires a tested Windows startup integration for the exact Geometry Dash
+Steam build (for example, a compatible proxy/module-loading integration or
+another supported startup mechanism). This repository does not yet implement
+or validate that Steam-native startup path. Do not claim automatic Steam
+loading until it has been tested on a clean Steam installation and verified
+not to replace or corrupt game-owned files.
 
-Responsible for installing, updating, and removing Fusion.
+## Game integration and menu
 
-It is not the mod manager.
+The native bootstrap currently initializes the loader but does not expose a
+Geometry Dash game API, hook lifecycle, game-ready signal, rendering/input
+integration, or in-game menu. Those require a version-specific adapter. The
+menu must be rendered and receive input through that adapter, not through a
+separate desktop application.
 
-### Fusion Bootstrap
+## Native settings, profiles, and keybind assignments
 
-`Fusion.Launcher.exe` starts Geometry Dash suspended, loads
-`Fusion/FusionBootstrap.dll` into the game process, and then resumes the game.
-The bootstrap initializes the native loader from `Fusion/mods` and
-`Fusion/mod-settings.json` on a worker thread.
+The native settings store now reads legacy version 1 settings and writes
+version 2 settings. Version 2 stores named profiles, the active profile,
+per-profile mod enablement, and keybind assignments. This is persistence and
+configuration infrastructure only: keybind dispatch and profile switching
+from the in-game menu require the not-yet-implemented game input/UI adapter.
 
-This is the process-startup bridge only. It does not yet provide Geometry Dash
-hooks, a game API adapter, or an in-game menu. Those require a version-specific
-integration and testing against the selected Geometry Dash build.
+## Geode compatibility
 
-### Fusion Loader
+Fusion-native mods remain the default and do not require Geode. Supporting
+Geode mods without installing Geode requires a Fusion-owned compatibility host
+that implements the Geode API subset required by each supported mod. Arbitrary
+Geode DLLs cannot be assumed compatible merely because Fusion can load a DLL.
+See [GEODE_COMPATIBILITY.md](GEODE_COMPATIBILITY.md). The compatibility host
+and certification suite are not implemented yet.
 
-Responsible for:
+## Runtime language support
 
-- Mod discovery
-- Manifest validation
-- Dependency resolution
-- Enabled/disabled preferences
-- Native mod initialization
-- Mod shutdown
-- Runtime error reporting
+The current native loader loads native Windows libraries through the Fusion C
+plugin contract. C++ is the implemented mod runtime. C#/.NET, Lua, and
+JavaScript require explicit runtime hosts, lifecycle adapters, package
+validation, dependency handling, and versioned SDK contracts before they can
+be advertised as supported.
 
-### Fusion SDK
+## Online catalog
 
-Provides the public API used by developers to create
-Fusion-compatible mods.
+The current Supabase migration contains profiles, approved mods, submissions,
+and user sync data. The current client supports registration, sign-in, and
+reading approved catalog entries. Secure package delivery, version history,
+ratings/reviews, download records, moderation workflows, and client-side
+installation/update integration remain incomplete. Privileged Supabase
+service-role keys must never be embedded in the Windows client.
 
-## Mod Compatibility
+## Release safety
 
-Fusion is independent of Geode.
-
-A Geode mod does not automatically work with Fusion.
-Developers must provide a Fusion-compatible implementation.
-
-A project may publish separate Fusion and Geode packages.
-
-## Runtime Requirements
-
-The native loader is initialized when Geometry Dash is started through
-`Fusion.Launcher.exe`. Starting the game directly through Steam does not load
-Fusion in this phase. The bootstrap currently has no game hooks or in-game UI;
-mods requiring Geometry Dash APIs must wait for a version-specific adapter.
-
-## Current package layout
-
-- `Fusion.Setup.exe`: user-facing setup wizard; detects/selects the Steam Geometry Dash folder.
-- `Fusion.Launcher.exe`: starts Geometry Dash with the native bootstrap loaded into the game process.
-- `Fusion.Updater.exe`: separate updater launcher. It reads `Fusion/update-source.txt`, downloads an HTTPS release manifest, verifies SHA-256 for each file, and only accepts paths under `Fusion/`.
-- `Fusion.Uninstaller.exe`: management/removal window. It reads `Fusion/installed-files.json` and removes only recorded Fusion-owned files plus the two Fusion management executables.
-- `Fusion/`: Fusion-owned runtime/configuration/data directory.
-- `Fusion/FusionBootstrap.dll`: native in-process bootstrap; initializes the native mod runtime.
-- `Fusion.Loader.dll`: managed contract placeholder; it is not the native loader and is not loaded by Geometry Dash.
-
-## Safety boundaries
-
-The installer never replaces `GeometryDash.exe` or other original game files. The updater rejects paths outside `Fusion/`. The uninstaller only removes paths recorded in the Fusion-owned file manifest. Keep all update downloads on HTTPS and publish SHA-256 values generated from the exact release files.
-
-## Loader work still required
-
-The bootstrap now loads the native runtime into the Geometry Dash process when
-started through `Fusion.Launcher.exe`. The next integration work is a tested,
-version-specific Geometry Dash adapter, safe hook lifecycle, game-ready state,
-and the in-game Fusion menu. The current `FusionGameApi` pointer is deliberately
-null until that adapter exists. Do not claim game-aware mods or the in-game menu
-are available yet.
-
-## Release manifest format
-
-Host `fusion-manifest.json` at a stable HTTPS URL. Example:
-
-```json
-{
-  "version": "0.2.0",
-  "files": [
-    {
-      "path": "Fusion/Fusion.Runtime.dll",
-      "url": "https://github.com/OWNER/REPO/releases/download/v0.2.0/Fusion.Runtime.dll",
-      "sha256": "REPLACE_WITH_64_CHARACTER_SHA256"
-    }
-  ]
-}
-```
-
-Set the manifest URL in `Geometry Dash/Fusion/update-source.txt`. The updater intentionally updates only files inside `Fusion/`; the updater and uninstaller executables are replaced by running a new setup package.
-
-
-## Native mod enable/disable preferences
-
-The native loader supports a per-installation settings file. The application
-that owns the Fusion mods directory should load it before building a load plan:
-
-```cpp
-fusion::loader::ModSettingsStore settings;
-std::string settingsError;
-
-if (!settings.Load(fusionConfigDirectory / "mod-settings.json", settingsError)) {
-    // Report the settings error and do not silently overwrite the user's file.
-}
-
-fusion::loader::ModRegistry registry;
-registry.Discover(modsDirectory);
-
-fusion::loader::ModLoader loader;
-loader.BuildLoadPlan(registry, settings);
-```
-
-A mod is enabled by default when it has no saved preference. To change a
-preference, call `SetEnabled(modId, false)` or `SetEnabled(modId, true)`,
-then call `Save(error)`.
-
-The settings file uses versioned JSON:
-
-```json
-{
-  "version": 1,
-  "mods": {
-    "example.mod": false
-  }
-}
-```
-
-Disabled mods are omitted from the load order. Mods that require a disabled
-dependency are marked failed and are not loaded. This is native loader
-infrastructure; the current WPF interface does not yet expose these controls,
-and the loader is not yet integrated into Geometry Dash.
+- Never overwrite `GeometryDash.exe` or other game-owned files.
+- Restrict updater writes to the Fusion-owned directory.
+- Verify downloaded files against release-manifest SHA-256 values.
+- Preserve existing user settings and mods during upgrades.
+- Only remove Fusion-owned files recorded by the installer.
+- Keep compatibility claims tied to tested game, loader, and mod versions.
