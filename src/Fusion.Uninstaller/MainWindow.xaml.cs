@@ -25,10 +25,20 @@ public partial class MainWindow : Window
             if (File.Exists(manifest))
             {
                 var files = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(manifest)) ?? [];
-                foreach (var relative in files)
+                // Remove Fusion's proxy first, then restore any proxy that was
+                // already present before Fusion was installed.
+                foreach (var relative in files.Where(x =>
+                    !x.Equals("XInput1_4.dll.fusion-backup", StringComparison.OrdinalIgnoreCase)))
                 {
                     var path = FusionPaths.SafeCombine(root, relative);
                     if (File.Exists(path)) File.Delete(path);
+                }
+                var proxyBackup = Path.Combine(root, "XInput1_4.dll.fusion-backup");
+                if (File.Exists(proxyBackup))
+                {
+                    var proxy = Path.Combine(root, "XInput1_4.dll");
+                    if (File.Exists(proxy)) File.Delete(proxy);
+                    File.Move(proxyBackup, proxy, true);
                 }
             }
             foreach (var metadataName in new[] { FusionPaths.InstalledFilesName, "update-source.txt" })
