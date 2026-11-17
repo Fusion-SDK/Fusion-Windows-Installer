@@ -224,6 +224,12 @@ namespace fusion::loader {
                 managedMods_[current].discovered.metadata.id
             );
 
+            // Mark successfully ordered mods so the final pass only
+            // rejects nodes that were actually blocked by a cycle.
+            managedMods_[current].state = ModState::Planned;
+            managedMods_[current].statusMessage =
+                "Ready to load.";
+
             for (const auto dependent : dependents[current]) {
                 if (managedMods_[dependent].state !=
                     ModState::Validated)
