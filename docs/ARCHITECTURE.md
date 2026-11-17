@@ -1,4 +1,5 @@
-[ARCHITECTURE.md](https://github.com/user-attachments/files/34984182/ARCHITECTURE.md)
+[ARCHITECTURE.md](https://github.com/user-attachments/files/34988448/ARCHITECTURE.md)
+
 
 # Fusion Windows architecture
 
@@ -20,11 +21,14 @@ It is not the mod manager.
 
 ### Fusion Bootstrap
 
-Responsible for establishing Fusion's integration with
-Geometry Dash and starting the Fusion runtime.
+`Fusion.Launcher.exe` starts Geometry Dash suspended, loads
+`Fusion/FusionBootstrap.dll` into the game process, and then resumes the game.
+The bootstrap initializes the native loader from `Fusion/mods` and
+`Fusion/mod-settings.json` on a worker thread.
 
-This component must be implemented and tested before
-Fusion can be considered functional inside the game.
+This is the process-startup bridge only. It does not yet provide Geometry Dash
+hooks, a game API adapter, or an in-game menu. Those require a version-specific
+integration and testing against the selected Geometry Dash build.
 
 ### Fusion Loader
 
@@ -54,19 +58,20 @@ A project may publish separate Fusion and Geode packages.
 
 ## Runtime Requirements
 
-The native loader must be initialized by Fusion's own
-Geometry Dash integration.
-
-The loader must not be advertised as working in-game
-until that integration is implemented and tested.
+The native loader is initialized when Geometry Dash is started through
+`Fusion.Launcher.exe`. Starting the game directly through Steam does not load
+Fusion in this phase. The bootstrap currently has no game hooks or in-game UI;
+mods requiring Geometry Dash APIs must wait for a version-specific adapter.
 
 ## Current package layout
 
 - `Fusion.Setup.exe`: user-facing setup wizard; detects/selects the Steam Geometry Dash folder.
+- `Fusion.Launcher.exe`: starts Geometry Dash with the native bootstrap loaded into the game process.
 - `Fusion.Updater.exe`: separate updater launcher. It reads `Fusion/update-source.txt`, downloads an HTTPS release manifest, verifies SHA-256 for each file, and only accepts paths under `Fusion/`.
 - `Fusion.Uninstaller.exe`: management/removal window. It reads `Fusion/installed-files.json` and removes only recorded Fusion-owned files plus the two Fusion management executables.
 - `Fusion/`: Fusion-owned runtime/configuration/data directory.
-- `Fusion.Loader.dll`: currently a contract placeholder only. It is NOT a native Geometry Dash plugin and is NOT loaded by Geometry Dash.
+- `Fusion/FusionBootstrap.dll`: native in-process bootstrap; initializes the native mod runtime.
+- `Fusion.Loader.dll`: managed contract placeholder; it is not the native loader and is not loaded by Geometry Dash.
 
 ## Safety boundaries
 
@@ -74,7 +79,12 @@ The installer never replaces `GeometryDash.exe` or other original game files. Th
 
 ## Loader work still required
 
-A real Geometry Dash loader needs a supported native integration layer, game-version compatibility checks, crash-safe startup, and testing against legally obtained game installations. The current `Fusion.Loader` project only defines a boundary for that work. Do not advertise mod loading or activation as available until a real loader is implemented and tested.
+The bootstrap now loads the native runtime into the Geometry Dash process when
+started through `Fusion.Launcher.exe`. The next integration work is a tested,
+version-specific Geometry Dash adapter, safe hook lifecycle, game-ready state,
+and the in-game Fusion menu. The current `FusionGameApi` pointer is deliberately
+null until that adapter exists. Do not claim game-aware mods or the in-game menu
+are available yet.
 
 ## Release manifest format
 
