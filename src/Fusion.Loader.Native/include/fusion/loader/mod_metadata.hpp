@@ -19,6 +19,7 @@ namespace fusion::loader {
         std::string name;
         std::string author;
         std::string version;
+        std::string library;
         std::uint32_t requiredLoaderApi = 1;
         std::vector<ModDependency> dependencies;
     };
