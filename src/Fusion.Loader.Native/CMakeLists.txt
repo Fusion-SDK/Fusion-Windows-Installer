@@ -60,3 +60,42 @@ else()
         -Wpedantic
     )
 endif()
+
+
+# Fusion's native bootstrap interface.
+# This DLL exposes a stable C interface for the game integration layer.
+
+add_library(FusionBootstrap SHARED
+    source/bootstrap_api.cpp
+)
+
+target_include_directories(FusionBootstrap
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(FusionBootstrap
+    PRIVATE
+        FusionLoaderCore
+)
+
+target_compile_features(FusionBootstrap
+    PRIVATE
+        cxx_std_20
+)
+
+set_target_properties(FusionBootstrap PROPERTIES
+    CXX_EXTENSIONS OFF
+    OUTPUT_NAME "FusionBootstrap"
+)
+
+if(MSVC)
+    target_compile_options(FusionBootstrap PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(FusionBootstrap PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+    )
+endif()
+
