@@ -21,6 +21,7 @@ add_library(FusionLoaderCore STATIC
     source/manifest_parser.cpp
     source/mod_registry.cpp
     source/mod_loader.cpp
+    source/mod_settings.cpp
     source/mod_runtime.cpp
     source/package_manager.cpp
 )
