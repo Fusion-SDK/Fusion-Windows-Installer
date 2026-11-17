@@ -11,6 +11,7 @@ namespace fusion::loader {
 
     enum class RuntimeModState {
         Loaded,
+        Disabled,
         Failed
     };
 
