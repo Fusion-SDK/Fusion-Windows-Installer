@@ -1,4 +1,5 @@
-[ARCHITECTURE.md](https://github.com/user-attachments/files/34763749/ARCHITECTURE.md)
+[ARCHITECTURE.md](https://github.com/user-attachments/files/34984182/ARCHITECTURE.md)
+
 # Fusion Windows architecture
 
 ## Current package layout
@@ -35,3 +36,44 @@ Host `fusion-manifest.json` at a stable HTTPS URL. Example:
 ```
 
 Set the manifest URL in `Geometry Dash/Fusion/update-source.txt`. The updater intentionally updates only files inside `Fusion/`; the updater and uninstaller executables are replaced by running a new setup package.
+
+
+## Native mod enable/disable preferences
+
+The native loader supports a per-installation settings file. The application
+that owns the Fusion mods directory should load it before building a load plan:
+
+```cpp
+fusion::loader::ModSettingsStore settings;
+std::string settingsError;
+
+if (!settings.Load(fusionConfigDirectory / "mod-settings.json", settingsError)) {
+    // Report the settings error and do not silently overwrite the user's file.
+}
+
+fusion::loader::ModRegistry registry;
+registry.Discover(modsDirectory);
+
+fusion::loader::ModLoader loader;
+loader.BuildLoadPlan(registry, settings);
+```
+
+A mod is enabled by default when it has no saved preference. To change a
+preference, call `SetEnabled(modId, false)` or `SetEnabled(modId, true)`,
+then call `Save(error)`.
+
+The settings file uses versioned JSON:
+
+```json
+{
+  "version": 1,
+  "mods": {
+    "example.mod": false
+  }
+}
+```
+
+Disabled mods are omitted from the load order. Mods that require a disabled
+dependency are marked failed and are not loaded. This is native loader
+infrastructure; the current WPF interface does not yet expose these controls,
+and the loader is not yet integrated into Geometry Dash.
