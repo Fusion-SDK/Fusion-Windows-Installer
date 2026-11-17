@@ -47,6 +47,15 @@ namespace fusion::loader {
             metadata.author = document["author"].get<std::string>();
             metadata.version = document["version"].get<std::string>();
 
+            metadata.library.clear();
+            if (document.contains("library")) {
+                if (!document["library"].is_string()) {
+                    error = "library must be a relative path string.";
+                    return false;
+                }
+                metadata.library = document["library"].get<std::string>();
+            }
+
             metadata.requiredLoaderApi = 1;
             metadata.dependencies.clear();
 
