@@ -226,7 +226,7 @@ namespace fusion::loader {
 
             // Mark successfully ordered mods so the final pass only
             // rejects nodes that were actually blocked by a cycle.
-            managedMods_[current].state = ModState::Planned;
+            managedMods_[current].state = ModState::ReadyToLoad;
             managedMods_[current].statusMessage =
                 "Ready to load.";
 
