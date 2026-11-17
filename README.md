@@ -2,9 +2,38 @@
 
 **The official Windows installer for Fusion, a Geometry Dash modding platform.**
 
-Fusion Circle aims to make discovering, installing, and managing Geometry Dash mods easier through a dedicated Windows application.
+Fusion aims to make discovering, installing, and managing Geometry Dash mods easier.
+
+It is designed to run directly alongside [Geometry Dash](https://store.steampowered.com/app/322170/Geometry_Dash/).
 
 ---
+
+## Architecture
+
+- **Fusion Bootstrap** - Starts Fusion's native integration with Geometry Dash.
+- **Fusion Loader** - Discovers, validates, and loads Fusion mods.
+- **Fusion SDK** - Provides APIs for developers building Fusion mods.
+- **Fusion Mod Catalog** - Provides mod discovery and distribution.
+- **Fusion Setup** - Installs and updates Fusion components.
+
+Fusion is not a seperate desktop mod manager. Its mod experience is intended to run inside [GeometryDash](https://store.steampowered.com/app/322170/Geometry_Dash/).
+
+## Compatibility
+
+Fusion mods use the Fusion SDK and native package format.
+
+Geode mods are not automatically compatible with Fusion.
+A mod developer must provide a native Fusion implementation
+or a separately maintained Fusion-compatible package.
+
+## Requirements
+
+- Windows
+- A supported Geometry Dash installation
+- Fusion's own native integration
+
+Geode is not required.
+
 
 ## About Fusion
 
@@ -29,8 +58,7 @@ The Windows Installer is the entry point to the Fusion experience.
 
 | Platform | Support |
 |---|---|
-| Windows | Primary target |
-| Steam Geometry Dash | Planned |
+| Windows Steam Geometry Dash | Planned |
 
 ---
 
