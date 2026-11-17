@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cwchar>
 
 #if defined(_WIN32)
     #define FUSION_BOOTSTRAP_EXPORT __declspec(dllexport)
