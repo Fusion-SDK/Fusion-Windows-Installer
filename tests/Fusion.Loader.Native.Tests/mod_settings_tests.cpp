@@ -1,4 +1,5 @@
 #include "fusion/loader/mod_settings.hpp"
+#include "fusion/loader/package_manager.hpp"
 
 #include <chrono>
 #include <filesystem>
@@ -137,6 +138,99 @@ void TestMalformedSettingsAreRejected(const std::filesystem::path& root)
     Require(!error.empty(), "Malformed settings should provide an error message.");
 }
 
+
+void WritePackage(
+    const std::filesystem::path& package,
+    const std::string& id,
+    const std::string& version,
+    const std::string& payload)
+{
+    std::filesystem::create_directories(package);
+    {
+        std::ofstream manifest(package / "mod.json");
+        Require(static_cast<bool>(manifest), "The package manifest should be writable.");
+        manifest << "{\\"id\\":\\"" << id
+                 << "\\",\\"name\\":\\"Test Mod\\",\\"author\\":\\"Fusion Tests\\",\\"version\\":\\""
+                 << version << "\\"}";
+    }
+    {
+        std::ofstream file(package / "payload.txt");
+        Require(static_cast<bool>(file), "The package payload should be writable.");
+        file << payload;
+    }
+}
+
+std::string ReadTextFile(const std::filesystem::path& path)
+{
+    std::ifstream input(path);
+    return std::string(
+        (std::istreambuf_iterator<char>(input)),
+        std::istreambuf_iterator<char>()
+    );
+}
+
+void TestPackageInstallUpdateAndUninstall(const std::filesystem::path& root)
+{
+    const auto mods = root / "installed-mods";
+    const auto firstPackage = root / "package-v1";
+    const auto updatePackage = root / "package-v2";
+    WritePackage(firstPackage, "sample.mod", "1.0.0", "version one");
+
+    fusion::loader::ModPackageManager manager(mods);
+    std::string error;
+    Require(manager.Install(firstPackage, error), "A valid package should install: " + error);
+    Require(ReadTextFile(mods / "sample.mod" / "payload.txt") == "version one",
+        "The installed package should contain its payload.");
+
+    WritePackage(updatePackage, "sample.mod", "2.0.0", "version two");
+    Require(manager.Install(updatePackage, error), "A valid update should replace the previous package: " + error);
+    Require(ReadTextFile(mods / "sample.mod" / "payload.txt") == "version two",
+        "The update should activate the new package contents.");
+    Require(!std::filesystem::exists(mods / "sample.mod.fusion-backup"),
+        "A successful update should remove its backup directory.");
+    Require(!std::filesystem::exists(mods / "sample.mod.fusion-staging"),
+        "A successful update should remove its staging directory.");
+
+    Require(!manager.Uninstall("../outside", error),
+        "Uninstall must reject path-traversal identifiers.");
+    Require(manager.Uninstall("sample.mod", error), "An installed package should uninstall: " + error);
+    Require(!std::filesystem::exists(mods / "sample.mod"),
+        "Uninstall should remove the selected Fusion-owned package.");
+}
+
+void TestPackageManagerRejectsUnsafeAndNestedSources(const std::filesystem::path& root)
+{
+    const auto mods = root / "safe-mods";
+    const auto unsafePackage = root / "unsafe-package";
+    WritePackage(unsafePackage, "../outside", "1.0.0", "not installed");
+
+    fusion::loader::ModPackageManager manager(mods);
+    std::string error;
+    Require(!manager.Install(unsafePackage, error),
+        "Package installation must reject unsafe mod identifiers.");
+    Require(!std::filesystem::exists(root / "outside"),
+        "An unsafe package identifier must not create an outside directory.");
+
+    const auto nestedPackage = mods / "nested-package";
+    WritePackage(nestedPackage, "nested.mod", "1.0.0", "nested");
+    Require(!manager.Install(nestedPackage, error),
+        "A package source inside the managed mods directory must be rejected.");
+}
+
+void TestPackageManagerRequiresRecoveryForStaleOperations(const std::filesystem::path& root)
+{
+    const auto mods = root / "recovery-mods";
+    const auto package = root / "recovery-package";
+    WritePackage(package, "recover.mod", "1.0.0", "payload");
+    std::filesystem::create_directories(mods / "recover.mod.fusion-staging");
+
+    fusion::loader::ModPackageManager manager(mods);
+    std::string error;
+    Require(!manager.Install(package, error),
+        "A stale staging directory must block a new install until recovery.");
+    Require(!error.empty(), "A blocked recovery operation should explain the failure.");
+}
+
 } // namespace
 
 int main()
@@ -147,6 +241,9 @@ int main()
         TestKeybindValidationAndPersistence(temporary.Path());
         TestVersionOneMigration(temporary.Path());
         TestMalformedSettingsAreRejected(temporary.Path());
+        TestPackageInstallUpdateAndUninstall(temporary.Path());
+        TestPackageManagerRejectsUnsafeAndNestedSources(temporary.Path());
+        TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
