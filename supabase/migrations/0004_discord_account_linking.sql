@@ -80,7 +80,7 @@ returns text
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
     challenge public.discord_link_challenges%rowtype;
     inserted_count integer;
