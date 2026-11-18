@@ -51,6 +51,10 @@ Deno.serve(async (request) => {
     return json({ error: "service_not_configured" }, 503);
   }
 
+  const declaredLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > 4096) {
+    return json({ error: "request_too_large" }, 413);
+  }
   const rawBody = await request.text();
   if (encoder.encode(rawBody).byteLength > 4096) return json({ error: "request_too_large" }, 413);
 
