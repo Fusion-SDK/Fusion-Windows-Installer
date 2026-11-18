@@ -149,9 +149,9 @@ void WritePackage(
     {
         std::ofstream manifest(package / "mod.json");
         Require(static_cast<bool>(manifest), "The package manifest should be writable.");
-        manifest << "{\\"id\\":\\"" << id
-                 << "\\",\\"name\\":\\"Test Mod\\",\\"author\\":\\"Fusion Tests\\",\\"version\\":\\""
-                 << version << "\\"}";
+        manifest << "{\"id\":\"" << id
+                 << "\",\"name\":\"Test Mod\",\"author\":\"Fusion Tests\",\"version\":\""
+                 << version << "\"}";
     }
     {
         std::ofstream file(package / "payload.txt");
