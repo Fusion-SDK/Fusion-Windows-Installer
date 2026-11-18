@@ -56,6 +56,22 @@ create index if not exists mod_reviews_visible_lookup
     on public.mod_reviews (mod_id, created_at desc)
     where is_hidden = false;
 
+create or replace function public.set_mod_review_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $
+begin
+    new.updated_at = now();
+    return new;
+end;
+$;
+
+drop trigger if exists mod_reviews_set_updated_at on public.mod_reviews;
+create trigger mod_reviews_set_updated_at
+before update on public.mod_reviews
+for each row execute function public.set_mod_review_updated_at();
+
 create table if not exists public.mod_download_events (
     id uuid primary key default gen_random_uuid(),
     release_id uuid not null references public.mod_releases(id) on delete cascade,
