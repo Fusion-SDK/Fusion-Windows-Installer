@@ -11,6 +11,10 @@ create table if not exists public.mod_releases (
         check (channel in ('stable', 'beta')),
     package_format_version smallint not null
         check (package_format_version = 3),
+    publisher_id text not null
+        check (char_length(publisher_id) between 1 and 128),
+    publisher_key_id text not null
+        check (char_length(publisher_key_id) between 1 and 128),
     artifact_bucket text not null default 'fusion-mods'
         check (char_length(artifact_bucket) between 1 and 128),
     artifact_path text not null
@@ -60,12 +64,12 @@ create or replace function public.set_mod_review_updated_at()
 returns trigger
 language plpgsql
 set search_path = ''
-as $
+as $function$
 begin
     new.updated_at = now();
     return new;
 end;
-$;
+$function$;
 
 drop trigger if exists mod_reviews_set_updated_at on public.mod_reviews;
 create trigger mod_reviews_set_updated_at
