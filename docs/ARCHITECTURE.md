@@ -80,8 +80,9 @@ be advertised as supported.
 
 The Supabase schema contains profiles, approved mods, submissions, user sync,
 and (migration 0002) release metadata, reviews, and per-user download events.
-The current client supports registration, sign-in, and reading approved catalog
-entries only. Release rows are restricted to signed format 3 metadata and remain
+The current client supports registration, sign-in, access-token refresh, sign-out,
+and reading approved catalog entries only. Refresh tokens remain in memory for
+the current app session and are not persisted to disk. Release rows are restricted to signed format 3 metadata and remain
 pending until a trusted publisher workflow verifies the package and signature.
 The migration does not grant direct artifact-storage access or expose download
 URLs. A server-side publisher/moderation service and signed-download endpoint

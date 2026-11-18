@@ -12,6 +12,8 @@ public partial class MainWindow : Window
     private readonly GameDetectionService _gameDetection = new();
     private string? _accessToken;
     private string? _userEmail;
+    private string? _refreshToken;
+    private DateTimeOffset? _expiresAt;
 
     public MainWindow()
     {
@@ -84,8 +86,14 @@ public partial class MainWindow : Window
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
         var signIn = new Button { Content = "Sign in" };
         var register = new Button { Content = "Create account" };
+        var signOut = new Button
+        {
+            Content = "Sign out",
+            IsEnabled = !string.IsNullOrWhiteSpace(_accessToken)
+        };
         buttons.Children.Add(signIn);
         buttons.Children.Add(register);
+        buttons.Children.Add(signOut);
         ContentPanel.Children.Add(buttons);
 
         signIn.Click += async (_, _) =>
@@ -94,8 +102,9 @@ public partial class MainWindow : Window
             try
             {
                 var session = await _supabase.SignInAsync(email.Text.Trim(), password.Password);
-                _accessToken = session.AccessToken;
-                _userEmail = session.Email;
+                StoreSession(session);
+                password.Clear();
+                signOut.IsEnabled = true;
                 status.Text = $"Signed in as {_userEmail}.";
                 ConnectionLabel.Text = $"Signed in: {_userEmail}";
             }
@@ -112,6 +121,30 @@ public partial class MainWindow : Window
             }
             catch (Exception ex) { status.Text = ex.Message; }
         };
+
+        signOut.Click += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(_accessToken))
+                return;
+
+            signOut.IsEnabled = false;
+            status.Text = "Signing out...";
+            try
+            {
+                var accessToken = await GetValidAccessTokenAsync();
+                await _supabase.SignOutAsync(accessToken);
+                ClearSession();
+                status.Text = "You have been signed out.";
+                ConnectionLabel.Text = _supabase.IsConfigured
+                    ? "Supabase configured"
+                    : "Supabase not configured";
+            }
+            catch (Exception ex)
+            {
+                status.Text = ex.Message;
+                signOut.IsEnabled = true;
+            }
+        };
     }
 
     private async Task ShowModsAsync()
@@ -127,7 +160,8 @@ public partial class MainWindow : Window
         AddBody("Loading approved mods...");
         try
         {
-            var mods = await _supabase.GetApprovedModsAsync(_accessToken);
+            var accessToken = await GetValidAccessTokenAsync();
+            var mods = await _supabase.GetApprovedModsAsync(accessToken);
             ContentPanel.Children.Clear();
             if (mods.Count == 0) AddBody("No approved mods are published yet.");
             foreach (var mod in mods)
@@ -152,6 +186,42 @@ public partial class MainWindow : Window
             ContentPanel.Children.Clear();
             AddBody($"Could not load the catalog: {ex.Message}");
         }
+    }
+
+
+    private void StoreSession(AuthSession session)
+    {
+        _accessToken = session.AccessToken;
+        _refreshToken = session.RefreshToken;
+        _expiresAt = session.ExpiresAt;
+        _userEmail = session.Email;
+    }
+
+    private void ClearSession()
+    {
+        _accessToken = null;
+        _refreshToken = null;
+        _expiresAt = null;
+        _userEmail = null;
+    }
+
+    private async Task<string> GetValidAccessTokenAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_accessToken))
+            throw new InvalidOperationException("Sign in before accessing the catalog.");
+
+        if (_expiresAt is not null &&
+            _expiresAt <= DateTimeOffset.UtcNow.AddMinutes(1))
+        {
+            if (string.IsNullOrWhiteSpace(_refreshToken))
+                throw new InvalidOperationException("Your session expired. Sign in again.");
+
+            var refreshed = await _supabase.RefreshSessionAsync(_refreshToken);
+            StoreSession(refreshed);
+            ConnectionLabel.Text = $"Signed in: {_userEmail}";
+        }
+
+        return _accessToken!;
     }
 
     private void ShowPlaceholder(string title, string subtitle, string body)

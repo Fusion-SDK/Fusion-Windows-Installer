@@ -49,7 +49,7 @@ They must remain unverified until tested against the actual game process.
 - [ ] Add ratings/reviews with abuse controls and RLS policies.
 - [ ] Add download/install/update records and rollback support.
 - [ ] Add publisher ownership and moderation workflows.
-- [ ] Add account/session refresh and sign-out handling.
+- [x] Add access-token refresh and sign-out handling to the installer client (refresh tokens are memory-only).
 
 ## Track D — Geode compatibility without Geode installed
 

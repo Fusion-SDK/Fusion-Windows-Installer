@@ -30,9 +30,75 @@ public sealed class SupabaseService
         var body = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(ReadError(body));
-        using var doc = JsonDocument.Parse(body);
-        var root = doc.RootElement;
-        return new AuthSession(root.GetProperty("access_token").GetString()!, root.GetProperty("user").GetProperty("email").GetString() ?? email);
+        return ParseSession(body, email);
+    }
+
+    public async Task<AuthSession> RefreshSessionAsync(string refreshToken)
+    {
+        EnsureConfigured();
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new ArgumentException("A refresh token is required.", nameof(refreshToken));
+
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            $"{_url}/auth/v1/token?grant_type=refresh_token");
+        request.Headers.Add("apikey", _key);
+        request.Content = JsonContent.Create(new { refresh_token = refreshToken });
+        using var response = await Client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(ReadError(body));
+        return ParseSession(body, string.Empty, refreshToken);
+    }
+
+    public async Task SignOutAsync(string accessToken)
+    {
+        EnsureConfigured();
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new ArgumentException("An access token is required.", nameof(accessToken));
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{_url}/auth/v1/logout");
+        request.Headers.Add("apikey", _key);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(ReadError(body));
+    }
+
+    private static AuthSession ParseSession(
+        string body,
+        string fallbackEmail,
+        string? fallbackRefreshToken = null)
+    {
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        var accessToken = root.GetProperty("access_token").GetString();
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new InvalidOperationException("The authentication response did not include an access token.");
+
+        var refreshToken = root.TryGetProperty("refresh_token", out var refresh)
+            ? refresh.GetString()
+            : null;
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            refreshToken = fallbackRefreshToken;
+        var email = fallbackEmail;
+        if (root.TryGetProperty("user", out var user) &&
+            user.ValueKind == JsonValueKind.Object &&
+            user.TryGetProperty("email", out var emailValue))
+        {
+            email = emailValue.GetString() ?? fallbackEmail;
+        }
+
+        var expiresIn = root.TryGetProperty("expires_in", out var expires) &&
+            expires.TryGetInt32(out var seconds) && seconds > 0
+            ? seconds
+            : 3600;
+
+        return new AuthSession(
+            accessToken,
+            email,
+            refreshToken,
+            DateTimeOffset.UtcNow.AddSeconds(expiresIn));
     }
 
     public async Task<string> RegisterAsync(string email, string password)
