@@ -103,6 +103,7 @@ public partial class MainWindow : Window
             {
                 var session = await _supabase.SignInAsync(email.Text.Trim(), password.Password);
                 StoreSession(session);
+                password.Clear();
                 signOut.IsEnabled = true;
                 status.Text = $"Signed in as {_userEmail}.";
                 ConnectionLabel.Text = $"Signed in: {_userEmail}";
@@ -130,7 +131,8 @@ public partial class MainWindow : Window
             status.Text = "Signing out...";
             try
             {
-                await _supabase.SignOutAsync(_accessToken);
+                var accessToken = await GetValidAccessTokenAsync();
+                await _supabase.SignOutAsync(accessToken);
                 ClearSession();
                 status.Text = "You have been signed out.";
                 ConnectionLabel.Text = _supabase.IsConfigured
