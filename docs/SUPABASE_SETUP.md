@@ -115,7 +115,7 @@ download or install catalog packages.
 
 Before enabling a project for real users:
 
-- Apply both migrations to a disposable Supabase project.
+- Apply all migrations in order to a disposable Supabase project.
 - Verify an unauthenticated request cannot read authenticated catalog data.
 - Verify one user cannot read or modify another user's profile, sync data,
   submission, review, or download events.
