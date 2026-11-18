@@ -39,14 +39,6 @@ async function sha256(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function cleanupExpiredChallenges(admin: ReturnType<typeof createClient>): Promise<void> {
-  const cleanupBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await admin.from("discord_link_challenges")
-    .delete()
-    .lt("created_at", cleanupBefore);
-  if (error) console.error("Discord challenge cleanup failed:", error.message);
-}
-
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -84,7 +76,11 @@ Deno.serve(async (request) => {
     const userClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
     const { data: userData, error: userError } = await userClient.auth.getUser(match[1]);
     if (userError || !userData.user) return json({ error: "invalid_session" }, 401);
-    await cleanupExpiredChallenges(admin);
+    const cleanupBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { error: cleanupError } = await admin.from("discord_link_challenges")
+      .delete()
+      .lt("created_at", cleanupBefore);
+    if (cleanupError) console.error("Discord challenge cleanup failed:", cleanupError.message);
 
     const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
     if (!/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/.test(code)) return json({ error: "invalid_code" }, 400);
@@ -100,7 +96,11 @@ Deno.serve(async (request) => {
 
   const suppliedSecret = request.headers.get("x-fusion-bot-secret") ?? "";
   if (!constantTimeEqual(suppliedSecret, botSecret)) return json({ error: "unauthorized" }, 401);
-  await cleanupExpiredChallenges(admin);
+    const cleanupBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { error: cleanupError } = await admin.from("discord_link_challenges")
+      .delete()
+      .lt("created_at", cleanupBefore);
+    if (cleanupError) console.error("Discord challenge cleanup failed:", cleanupError.message);
 
   const discordUserId = body.discord_user_id;
   if (!validDiscordId(discordUserId)) return json({ error: "invalid_discord_user_id" }, 400);
