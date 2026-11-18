@@ -98,8 +98,8 @@ namespace {
             std::filesystem::create_directories(mods, error);
             if (error) {
                 result = 2;
-                const std::wstring message = L"Could not create the mods directory. Error: " +
-                    std::to_wstring(error.value()) + L" (" + error.message().c_str() + L").";
+                const std::wstring message = L"Could not create the mods directory. Error code: " +
+                    std::to_wstring(error.value()) + L".";
                 WriteBootstrapLog(logPath, message.c_str());
             }
             else {
