@@ -86,15 +86,15 @@ jobs:
           $nsisScript = @'
           Unicode true
           Name "Fusion"
-          OutFile "artifacts\\Fusion-Setup.exe"
+          OutFile "artifacts\Fusion-Setup.exe"
           SilentInstall silent
           RequestExecutionLevel user
 
           Section
-            SetOutPath "$TEMP\\FusionSetup"
-            File /r "artifacts\\Fusion-Package\\*"
-            ExecWait '"$TEMP\\FusionSetup\\Fusion.Setup.exe"'
-            RMDir /r "$TEMP\\FusionSetup"
+            SetOutPath "$TEMP\FusionSetup"
+            File /r "artifacts\Fusion-Package\*"
+            ExecWait '"$TEMP\FusionSetup\Fusion.Setup.exe"'
+            RMDir /r "$TEMP\FusionSetup"
           SectionEnd
           '@
 
@@ -106,8 +106,8 @@ jobs:
           }
           else {
             $candidates = @(
-              "$env:ProgramFiles(x86)\\NSIS\\makensis.exe",
-              "$env:ProgramFiles\\NSIS\\makensis.exe"
+              "$env:ProgramFiles(x86)\NSIS\makensis.exe",
+              "$env:ProgramFiles\NSIS\makensis.exe"
             )
             $makensis = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           }
