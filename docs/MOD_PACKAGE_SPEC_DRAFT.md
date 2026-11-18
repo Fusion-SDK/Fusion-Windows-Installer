@@ -1,8 +1,8 @@
 # Mod Package Specification — Draft
 
-This document defines the first versioned package-integrity contract. It does
-not define publisher authenticity; digital signatures and trusted-publisher
-policy remain a separate future requirement.
+This document defines package integrity formats 1 and 2 and the proposed signed
+format 3. Format 3 is specified but not implemented; the native parser currently
+rejects it until signature verification and trusted-key distribution are ready.
 
 ## Package format version 1
 
@@ -38,13 +38,11 @@ format 2 package must contain at least one payload file.
 
 SHA-256 verification detects modified or corrupted files relative to the
 manifest. It does **not** prove who published the package: an attacker able to
-replace both a package and its manifest can generate matching hashes. Digital
-signatures, publisher identity, and key rotation must be designed separately
-before packages can be treated as publisher-authenticated.
+replace both a package and its manifest can generate matching hashes. A valid
+format 2 hash check must never be presented as publisher authentication.
 
 ## Future requirements
 
-- Publisher identity and digital signature.
 - Supported game and game-version range.
 - Required Fusion Loader API version.
 - Declared capabilities and permissions.

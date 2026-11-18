@@ -15,7 +15,10 @@ behavior remains an explicit validation gate rather than an assumed result.
       keybind validation (GitHub Actions run 44339463233).
 - [x] Native package-manager regression tests for install, update, uninstall,
       unsafe identifiers, nested sources, and stale-operation recovery.
-- [x] Native package-integrity verification for format 2 manifests (PR #11; Windows CI run 44356727748).\n- [ ] Define and implement signed format 3 packages, publisher key trust, rotation, and revocation.
+- [x] Native package-integrity verification for format 2 manifests (PR #11; Windows CI run 44356727748).
+- [x] Document signed format 3 trust and key-rotation design (PR #12).
+- [x] Reject format 3 packages until signature verification is implemented (fail-closed regression test).
+- [ ] Implement Ed25519 verification and an authenticated, rollback-protected trusted-key registry.
 - [ ] Runtime adapters for each additional language (C#, Lua, JavaScript).
 - [ ] Crash-safe mod isolation and recovery.
 
@@ -39,9 +42,10 @@ They must remain unverified until tested against the actual game process.
 - [x] Initial Supabase auth and catalog read integration.
 - [x] Initial profile, mod, submission, and sync tables.
 - [ ] Define versioned mod releases and immutable artifact metadata.
-- [x] Implement package hash verification for local format 2 packages.\n- [ ] Implement signed format 3 release verification and safe online download handling.
-- [ ] Define publisher signing and trust/key-rotation policy before enforcing
-      digital signatures.
+- [x] Implement package hash verification for local format 2 packages.
+- [ ] Implement signed format 3 release verification and safe online download handling.
+- [x] Define publisher signing and trust/key-rotation policy before enforcing
+      digital signatures (PR #12 design only).
 - [ ] Add ratings/reviews with abuse controls and RLS policies.
 - [ ] Add download/install/update records and rollback support.
 - [ ] Add publisher ownership and moderation workflows.

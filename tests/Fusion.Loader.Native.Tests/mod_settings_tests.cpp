@@ -297,6 +297,35 @@ void TestPackageFormatTwoRejectsUnlistedFiles(const std::filesystem::path& root)
         "An undeclared package file should be identified.");
 }
 
+
+void TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(
+    const std::filesystem::path& root)
+{
+    const auto package = root / "unsigned-format-three-package";
+    std::filesystem::create_directories(package);
+    {
+        std::ofstream payload(package / "payload.txt", std::ios::binary);
+        payload << "unsigned payload";
+    }
+    {
+        std::ofstream manifest(package / "mod.json", std::ios::binary);
+        manifest << R"({"id":"unsigned.v3","name":"Unsigned V3","author":"Fusion Tests","version":"1.0.0","packageFormatVersion":3,"publisherId":"test-publisher","publisherKeyId":"test-key","files":[{"path":"payload.txt","sha256":"0000000000000000000000000000000000000000000000000000000000000000"}]})";
+    }
+    {
+        std::ofstream signature(package / "mod.json.sig", std::ios::binary);
+        signature << R"({"algorithm":"Ed25519","keyId":"test-key","signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="})";
+    }
+
+    fusion::loader::ModPackageManager manager(root / "format-three-mods");
+    std::string error;
+    Require(!manager.Install(package, error),
+        "Format 3 must not install before signature verification is implemented.");
+    Require(error.find("Unsupported package format version") != std::string::npos,
+        "Format 3 rejection should explain that the format is not supported.");
+    Require(!std::filesystem::exists(root / "format-three-mods" / "unsigned.v3"),
+        "An unverified format 3 package must never be activated.");
+}
+
 } // namespace
 
 int main()
@@ -312,6 +341,7 @@ int main()
         TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());
         TestPackageFormatTwoVerifiesSha256(temporary.Path());
         TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());
+        TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
