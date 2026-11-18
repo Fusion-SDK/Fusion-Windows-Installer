@@ -9,6 +9,10 @@ It is designed to run directly alongside [Geometry Dash](https://store.steampowe
 
 ---
 
+## Backend setup
+
+See [Supabase setup and deployment](docs/SUPABASE_SETUP.md) before configuring the account/catalog features.
+
 ## Architecture
 
 - **Fusion Bootstrap and Loader** — native startup and mod lifecycle infrastructure.
