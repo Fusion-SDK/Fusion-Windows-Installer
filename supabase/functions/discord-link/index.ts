@@ -51,10 +51,32 @@ Deno.serve(async (request) => {
     return json({ error: "service_not_configured" }, 503);
   }
 
+  const rawBody = await request.text();
+  if (encoder.encode(rawBody).byteLength > 4096) return json({ error: "request_too_large" }, 413);
+
   let body: Record<string, unknown>;
-  try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
+  try {
+    const parsed: unknown = JSON.parse(rawBody);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return json({ error: "invalid_json" }, 400);
+    }
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return json({ error: "invalid_json" }, 400);
+  }
+
   const action = body.action;
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+  // Opportunistically remove expired challenge records so inactive accounts
+  // do not leave an ever-growing history table. Cleanup failure does not block
+  // a valid verification request.
+  const cleanupBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  await admin.from("discord_link_challenges").delete()
+    .lt("created_at", cleanupBefore)
+    .then(({ error }) => {
+      if (error) console.error("Discord challenge cleanup failed:", error.message);
+    });
 
   if (action === "confirm") {
     const authorization = request.headers.get("authorization") ?? "";
