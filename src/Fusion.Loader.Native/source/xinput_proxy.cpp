@@ -3,8 +3,6 @@
 #include <windows.h>
 #include <string>
 
-// ABI-compatible XInput structures. Declaring them locally avoids importing
-// XInput1_4.lib, which would resolve back to this proxy.
 struct XINPUT_GAMEPAD { WORD wButtons; BYTE bLeftTrigger; BYTE bRightTrigger; SHORT sThumbLX; SHORT sThumbLY; SHORT sThumbRX; SHORT sThumbRY; };
 struct XINPUT_STATE { DWORD dwPacketNumber; XINPUT_GAMEPAD Gamepad; };
 struct XINPUT_VIBRATION { WORD wLeftMotorSpeed; WORD wRightMotorSpeed; };
@@ -34,6 +32,31 @@ GetAudioDeviceIdsFn g_getAudioDeviceIds = nullptr;
 GetBatteryInformationFn g_getBatteryInformation = nullptr;
 GetKeystrokeFn g_getKeystroke = nullptr;
 
+void WriteProxyLog(const std::wstring& gameDirectory, const wchar_t* message) {
+    std::wstring logPath = gameDirectory;
+    logPath += L"Fusion\\FusionProxy.log";
+    HANDLE file = CreateFileW(logPath.c_str(), FILE_APPEND_DATA,
+        FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) return;
+
+    SYSTEMTIME now{};
+    GetLocalTime(&now);
+    wchar_t line[768]{};
+    swprintf_s(line, L"[%04u-%02u-%02u %02u:%02u:%02u] %s\r\n",
+        now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute,
+        now.wSecond, message ? message : L"");
+    const int required = WideCharToMultiByte(CP_UTF8, 0, line, -1, nullptr, 0, nullptr, nullptr);
+    if (required > 1) {
+        std::string utf8(static_cast<std::size_t>(required), '\0');
+        if (WideCharToMultiByte(CP_UTF8, 0, line, -1, utf8.data(), required, nullptr, nullptr) > 0) {
+            DWORD written = 0;
+            WriteFile(file, utf8.data(), static_cast<DWORD>(required - 1), &written, nullptr);
+        }
+    }
+    CloseHandle(file);
+}
+
 BOOL CALLBACK ResolveXInput(PINIT_ONCE, PVOID, PVOID*) {
     wchar_t systemDirectory[MAX_PATH]{};
     const UINT length = GetSystemDirectoryW(systemDirectory, MAX_PATH);
@@ -60,24 +83,31 @@ void EnsureXInput() {
 }
 
 DWORD WINAPI InitializeFusion(LPVOID module) {
-    // The worker runs after DLL_PROCESS_ATTACH has returned, outside the loader lock.
-    wchar_t gameDirectory[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(static_cast<HMODULE>(module), gameDirectory, MAX_PATH);
+    wchar_t gamePath[MAX_PATH]{};
+    const DWORD length = GetModuleFileNameW(static_cast<HMODULE>(module), gamePath, MAX_PATH);
     if (length == 0 || length >= MAX_PATH) return 1;
 
-    std::wstring bootstrapPath(gameDirectory, length);
-    const auto separator = bootstrapPath.find_last_of(L"\\/");
+    std::wstring gameDirectory(gamePath, length);
+    const auto separator = gameDirectory.find_last_of(L"\\/");
     if (separator == std::wstring::npos) return 2;
-    bootstrapPath.resize(separator + 1);
+    gameDirectory.resize(separator + 1);
+
+    WriteProxyLog(gameDirectory, L"XInput proxy loaded by the game process.");
+    std::wstring bootstrapPath = gameDirectory;
     bootstrapPath += L"Fusion\\FusionBootstrap.dll";
 
     g_fusionBootstrap = LoadLibraryW(bootstrapPath.c_str());
     if (!g_fusionBootstrap) {
-        wchar_t message[512]{};
-        swprintf_s(message, L"Fusion could not load its bootstrap. Windows error: %lu", GetLastError());
+        const DWORD error = GetLastError();
+        wchar_t message[256]{};
+        swprintf_s(message, L"Could not load FusionBootstrap.dll. Windows error: %lu", error);
+        WriteProxyLog(gameDirectory, message);
         OutputDebugStringW(message);
+        return 3;
     }
-    return g_fusionBootstrap ? 0 : 3;
+
+    WriteProxyLog(gameDirectory, L"FusionBootstrap.dll loaded successfully.");
+    return 0;
 }
 }
 
