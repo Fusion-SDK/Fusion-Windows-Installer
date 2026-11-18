@@ -26,6 +26,7 @@ Apply the SQL files in order:
 
 1. `supabase/migrations/0001_initial.sql`
 2. `supabase/migrations/0002_catalog_releases_reviews.sql`
+3. `supabase/migrations/0003_catalog_column_privacy.sql`
 
 You can apply them through the Supabase SQL Editor or the Supabase CLI using
 your own linked project. Do not skip migration 0002: it adds release metadata,
@@ -43,6 +44,7 @@ Do not commit local access tokens or project secrets.
 - Reviews are limited to one per user per mod; ratings are 1–5 and review text
   is limited to 2,000 characters. Users can edit only their own rating/body.
 - Review visibility/moderation fields are not client-writable.
+- Client queries cannot read other users' IDs from reviews/download events or raw Storage object paths from release rows.
 - Users can record download events only for published releases of approved mods.
 - Release metadata is readable only after a release is published and its mod is
   approved. Clients cannot insert or edit release metadata.
