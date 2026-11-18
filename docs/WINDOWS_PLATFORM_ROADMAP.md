@@ -49,7 +49,11 @@ They must remain unverified until tested against the actual game process.
 - [ ] Add ratings/reviews with abuse controls and RLS policies.
 - [ ] Add download/install/update records and rollback support.
 - [ ] Add publisher ownership and moderation workflows.
-- [x] Add access-token refresh and sign-out handling to the installer client (refresh tokens are memory-only).\n- [x] Add secure Discord account-linking schema and Edge Function (backend PR; not live-deployed).\n- [ ] Implement the authenticated in-game Link Discord screen using the active Fusion access token.\n- [ ] Deploy and integration-test the Discord linking backend in a disposable Supabase project.\n- [ ] Test Discord role synchronization with a development Discord server.
+- [x] Add access-token refresh and sign-out handling to the installer client (refresh tokens are memory-only).
+- [x] Add secure Discord account-linking schema and Edge Function (backend PR; not live-deployed).
+- [ ] Implement the authenticated in-game Link Discord screen using the active Fusion access token.
+- [ ] Deploy and integration-test the Discord linking backend in a disposable Supabase project.
+- [ ] Test Discord role synchronization with a development Discord server.
 
 ## Track D — Geode compatibility without Geode installed
 
