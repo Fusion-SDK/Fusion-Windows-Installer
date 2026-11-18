@@ -48,7 +48,7 @@ jobs:
         shell: pwsh
         run: |
           $nsisCandidates = @(
-            "$env:ProgramFiles(x86)\NSIS\makensis.exe",
+            "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
             "$env:ProgramFiles\NSIS\makensis.exe"
           )
 
@@ -106,7 +106,7 @@ jobs:
           }
           else {
             $candidates = @(
-              "$env:ProgramFiles(x86)\NSIS\makensis.exe",
+              "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
               "$env:ProgramFiles\NSIS\makensis.exe"
             )
             $makensis = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
