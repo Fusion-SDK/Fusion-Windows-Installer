@@ -103,6 +103,7 @@ public partial class MainWindow : Window
             {
                 var session = await _supabase.SignInAsync(email.Text.Trim(), password.Password);
                 StoreSession(session);
+                signOut.IsEnabled = true;
                 status.Text = $"Signed in as {_userEmail}.";
                 ConnectionLabel.Text = $"Signed in: {_userEmail}";
             }
