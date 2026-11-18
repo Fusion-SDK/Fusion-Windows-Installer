@@ -232,6 +232,71 @@ void TestPackageManagerRequiresRecoveryForStaleOperations(const std::filesystem:
     Require(!error.empty(), "A blocked recovery operation should explain the failure.");
 }
 
+
+void TestPackageFormatTwoVerifiesSha256(const std::filesystem::path& root)
+{
+    const auto mods = root / "hashed-mods";
+    const auto package = root / "hashed-package";
+    std::filesystem::create_directories(package);
+    {
+        std::ofstream payload(package / "payload.txt", std::ios::binary);
+        payload << "hello\\n";
+    }
+    {
+        std::ofstream manifest(package / "mod.json");
+        manifest << R"({"id":"hashed.mod","name":"Hashed Mod","author":"Fusion Tests","version":"1.0.0","packageFormatVersion":2,"files":[{"path":"payload.txt","sha256":"5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"}]})";
+    }
+
+    fusion::loader::ModPackageManager manager(mods);
+    std::string error;
+    Require(manager.Install(package, error),
+        "A format 2 package with matching SHA-256 should install: " + error);
+    Require(ReadTextFile(mods / "hashed.mod" / "payload.txt") == "hello\\n",
+        "The verified payload should be installed.");
+
+    const auto tampered = root / "tampered-package";
+    std::filesystem::create_directories(tampered);
+    {
+        std::ofstream payload(tampered / "payload.txt", std::ios::binary);
+        payload << "changed";
+    }
+    {
+        std::ofstream manifest(tampered / "mod.json");
+        manifest << R"({"id":"tampered.mod","name":"Tampered Mod","author":"Fusion Tests","version":"1.0.0","packageFormatVersion":2,"files":[{"path":"payload.txt","sha256":"5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"}]})";
+    }
+    Require(!manager.Install(tampered, error),
+        "A package with a modified payload must be rejected.");
+    Require(error.find("SHA-256 mismatch") != std::string::npos,
+        "A hash mismatch should provide a clear diagnostic.");
+    Require(!std::filesystem::exists(mods / "tampered.mod"),
+        "A package that fails integrity verification must not be activated.");
+}
+
+void TestPackageFormatTwoRejectsUnlistedFiles(const std::filesystem::path& root)
+{
+    const auto package = root / "unlisted-package";
+    std::filesystem::create_directories(package);
+    {
+        std::ofstream payload(package / "payload.txt", std::ios::binary);
+        payload << "hello\\n";
+    }
+    {
+        std::ofstream extra(package / "extra.txt", std::ios::binary);
+        extra << "not declared";
+    }
+    {
+        std::ofstream manifest(package / "mod.json");
+        manifest << R"({"id":"unlisted.mod","name":"Unlisted Mod","author":"Fusion Tests","version":"1.0.0","packageFormatVersion":2,"files":[{"path":"payload.txt","sha256":"5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"}]})";
+    }
+
+    fusion::loader::ModPackageManager manager(root / "unlisted-mods");
+    std::string error;
+    Require(!manager.Install(package, error),
+        "Format 2 packages must reject files not declared in the manifest.");
+    Require(error.find("unlisted file") != std::string::npos,
+        "An undeclared package file should be identified.");
+}
+
 } // namespace
 
 int main()
@@ -244,7 +309,9 @@ int main()
         TestMalformedSettingsAreRejected(temporary.Path());
         TestPackageInstallUpdateAndUninstall(temporary.Path());
         TestPackageManagerRejectsUnsafeAndNestedSources(temporary.Path());
-        TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());\n        TestPackageFormatTwoVerifiesSha256(temporary.Path());\n        TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());
+        TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());
+        TestPackageFormatTwoVerifiesSha256(temporary.Path());
+        TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
