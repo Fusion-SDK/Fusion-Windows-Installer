@@ -18,45 +18,36 @@ namespace fusion::loader {
             std::uint32_t& minor,
             std::uint32_t& patch)
         {
-            std::uint32_t* parts[] = {
-                &major, &minor, &patch
-            };
-
+            std::uint32_t parsed[3]{};
             std::size_t start = 0;
 
-            for (int i = 0; i < 3; ++i) {
-                const std::size_t end =
-                    value.find('.', start);
+            for (std::size_t i = 0; i < 3; ++i) {
+                const std::size_t end = value.find('.', start);
 
                 if ((i < 2 && end == std::string::npos) ||
-                    (i == 2 && end != std::string::npos))
+                    (i == 2 && end != std::string::npos)) {
                     return false;
+                }
 
                 const std::size_t length =
-                    end == std::string::npos
-                    ? value.size() - start
-                    : end - start;
-
+                    end == std::string::npos ? value.size() - start : end - start;
                 if (length == 0)
                     return false;
 
                 const char* first = value.data() + start;
                 const char* last = first + length;
+                const auto result = std::from_chars(first, last, parsed[i]);
 
-                const auto result = std::from_chars(
-                    first, last, *parts[i]
-                );
-
-                if (result.ec != std::errc{} ||
-                    result.ptr != last)
+                if (result.ec != std::errc{} || result.ptr != last)
                     return false;
 
-                if (end == std::string::npos)
-                    break;
-
-                start = end + 1;
+                if (end != std::string::npos)
+                    start = end + 1;
             }
 
+            major = parsed[0];
+            minor = parsed[1];
+            patch = parsed[2];
             return true;
         }
 
