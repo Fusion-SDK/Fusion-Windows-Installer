@@ -78,7 +78,9 @@ public sealed class SupabaseService
 
         var refreshToken = root.TryGetProperty("refresh_token", out var refresh)
             ? refresh.GetString()
-            : fallbackRefreshToken;
+            : null;
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            refreshToken = fallbackRefreshToken;
         var email = fallbackEmail;
         if (root.TryGetProperty("user", out var user) &&
             user.ValueKind == JsonValueKind.Object &&
