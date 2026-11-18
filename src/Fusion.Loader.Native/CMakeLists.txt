@@ -7,15 +7,17 @@ project(FusionLoaderNative
 )
 
 include(CTest)
-
 include(FetchContent)
 
 FetchContent_Declare(
     nlohmann_json
     URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
 )
-
 FetchContent_MakeAvailable(nlohmann_json)
+
+if(NOT WIN32)
+    find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+endif()
 
 add_library(FusionLoaderCore STATIC
     source/loader_core.cpp
@@ -25,6 +27,7 @@ add_library(FusionLoaderCore STATIC
     source/mod_settings.cpp
     source/mod_runtime.cpp
     source/package_manager.cpp
+    source/sha256.cpp
 )
 
 target_include_directories(FusionLoaderCore
@@ -36,8 +39,10 @@ target_link_libraries(FusionLoaderCore
     PRIVATE nlohmann_json::nlohmann_json
 )
 
-if(NOT WIN32)
-    target_link_libraries(FusionLoaderCore PRIVATE ${CMAKE_DL_LIBS})
+if(WIN32)
+    target_link_libraries(FusionLoaderCore PRIVATE bcrypt)
+else()
+    target_link_libraries(FusionLoaderCore PRIVATE OpenSSL::Crypto ${CMAKE_DL_LIBS})
 endif()
 
 target_include_directories(FusionLoaderCore
@@ -46,7 +51,6 @@ target_include_directories(FusionLoaderCore
 )
 
 target_compile_features(FusionLoaderCore PUBLIC cxx_std_20)
-
 set_target_properties(FusionLoaderCore PROPERTIES
     CXX_EXTENSIONS OFF
     OUTPUT_NAME "FusionLoaderCore"
@@ -55,11 +59,7 @@ set_target_properties(FusionLoaderCore PROPERTIES
 if(MSVC)
     target_compile_options(FusionLoaderCore PRIVATE /W4 /permissive-)
 else()
-    target_compile_options(FusionLoaderCore PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-    )
+    target_compile_options(FusionLoaderCore PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 if(BUILD_TESTING)
@@ -72,18 +72,11 @@ if(BUILD_TESTING)
     if(MSVC)
         target_compile_options(FusionLoaderNativeTests PRIVATE /W4 /permissive-)
     else()
-        target_compile_options(FusionLoaderNativeTests PRIVATE
-            -Wall
-            -Wextra
-            -Wpedantic
-        )
+        target_compile_options(FusionLoaderNativeTests PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 
     add_test(NAME FusionLoaderNativeTests COMMAND FusionLoaderNativeTests)
 endif()
-
-# Fusion's native bootstrap interface.
-# This DLL exposes a stable C interface for the game integration layer.
 
 add_library(FusionBootstrap SHARED
     source/bootstrap_api.cpp
@@ -94,17 +87,8 @@ target_include_directories(FusionBootstrap
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-
-target_link_libraries(FusionBootstrap
-    PRIVATE
-        FusionLoaderCore
-)
-
-target_compile_features(FusionBootstrap
-    PRIVATE
-        cxx_std_20
-)
-
+target_link_libraries(FusionBootstrap PRIVATE FusionLoaderCore)
+target_compile_features(FusionBootstrap PRIVATE cxx_std_20)
 set_target_properties(FusionBootstrap PROPERTIES
     CXX_EXTENSIONS OFF
     OUTPUT_NAME "FusionBootstrap"
@@ -113,16 +97,10 @@ set_target_properties(FusionBootstrap PROPERTIES
 if(MSVC)
     target_compile_options(FusionBootstrap PRIVATE /W4 /permissive-)
 else()
-    target_compile_options(FusionBootstrap PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-    )
+    target_compile_options(FusionBootstrap PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 if(WIN32)
-    # Geometry Dash imports XInput1_4 on current 64-bit Windows builds. This
-    # proxy forwards the real system API and loads FusionBootstrap in-process.
     add_library(FusionXInputProxy SHARED
         source/xinput_proxy.cpp
         source/XInput1_4.def

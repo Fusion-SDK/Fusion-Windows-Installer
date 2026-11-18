@@ -13,8 +13,9 @@ behavior remains an explicit validation gate rather than an assumed result.
 - [x] Version 2 settings persistence for profiles and keybind assignments.
 - [x] Native regression tests for settings migration, profile lifecycle, and
       keybind validation (GitHub Actions run 44339463233).
-- [ ] Native regression tests for package installation, update, rollback,
-      path safety, and recovery (in progress).
+- [x] Native package-manager regression tests for install, update, uninstall,
+      unsafe identifiers, nested sources, and stale-operation recovery.
+- [ ] Native package-integrity verification for format 2 manifests (in review).
 - [ ] Runtime adapters for each additional language (C#, Lua, JavaScript).
 - [ ] Crash-safe mod isolation and recovery.
 

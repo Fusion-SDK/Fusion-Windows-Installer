@@ -1,6 +1,7 @@
-
 #include "fusion/loader/manifest_parser.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -57,7 +58,9 @@ namespace fusion::loader {
             }
 
             metadata.requiredLoaderApi = 1;
+            metadata.packageFormatVersion = 1;
             metadata.dependencies.clear();
+            metadata.files.clear();
 
             if (document.contains("requiredLoaderApi")) {
                 if (!document["requiredLoaderApi"].is_number_unsigned()
@@ -79,6 +82,22 @@ namespace fusion::loader {
                     static_cast<std::uint32_t>(api);
             }
 
+            if (document.contains("packageFormatVersion")) {
+                if (!document["packageFormatVersion"].is_number_unsigned()
+                    && !document["packageFormatVersion"].is_number_integer()) {
+                    error = "packageFormatVersion must be an integer.";
+                    return false;
+                }
+                const auto format =
+                    document["packageFormatVersion"].get<std::int64_t>();
+                if (format != 1 && format != 2) {
+                    error = "Unsupported package format version.";
+                    return false;
+                }
+                metadata.packageFormatVersion =
+                    static_cast<std::uint32_t>(format);
+            }
+
             if (document.contains("dependencies")) {
                 if (!document["dependencies"].is_array()) {
                     error = "Dependencies must be an array.";
@@ -97,16 +116,13 @@ namespace fusion::loader {
                     }
 
                     ModDependency parsed;
-
-                    parsed.id =
-                        dependency["id"].get<std::string>();
+                    parsed.id = dependency["id"].get<std::string>();
 
                     if (dependency.contains("minimumVersion")) {
                         if (!dependency["minimumVersion"].is_string()) {
                             error = "Dependency minimumVersion must be a string.";
                             return false;
                         }
-
                         parsed.minimumVersion =
                             dependency["minimumVersion"].get<std::string>();
                     }
@@ -116,10 +132,60 @@ namespace fusion::loader {
                         return false;
                     }
 
-                    metadata.dependencies.push_back(
-                        std::move(parsed)
-                    );
+                    metadata.dependencies.push_back(std::move(parsed));
                 }
+            }
+
+            if (metadata.packageFormatVersion == 2) {
+                if (!document.contains("files") || !document["files"].is_array()
+                    || document["files"].empty()) {
+                    error = "Format 2 packages require a non-empty files array.";
+                    return false;
+                }
+
+                for (const auto& item : document["files"]) {
+                    if (!item.is_object() ||
+                        !item.contains("path") || !item["path"].is_string() ||
+                        !item.contains("sha256") || !item["sha256"].is_string()) {
+                        error = "Each file entry requires string path and sha256 fields.";
+                        return false;
+                    }
+
+                    ModFileHash entry;
+                    entry.path = item["path"].get<std::string>();
+                    entry.sha256 = item["sha256"].get<std::string>();
+
+                    const std::filesystem::path relative(entry.path);
+                    if (entry.path.empty() || relative.is_absolute() ||
+                        relative.has_root_name() || relative.has_root_directory() ||
+                        relative.generic_string() != entry.path ||
+                        entry.path == "mod.json") {
+                        error = "Package file manifest contains an unsafe path.";
+                        return false;
+                    }
+                    for (const auto& part : relative) {
+                        if (part == "." || part == "..") {
+                            error = "Package file manifest contains an unsafe path.";
+                            return false;
+                        }
+                    }
+
+                    if (entry.sha256.size() != 64 ||
+                        !std::all_of(entry.sha256.begin(), entry.sha256.end(),
+                            [](unsigned char c) {
+                                return std::isdigit(c) ||
+                                    (c >= 'a' && c <= 'f');
+                            })) {
+                        error = "Package file SHA-256 must be 64 lowercase hexadecimal characters.";
+                        return false;
+                    }
+
+                    metadata.files.push_back(std::move(entry));
+                }
+            }
+            else if (document.contains("files")) {
+                error = "The files hash manifest is only supported by package format 2.";
+                return false;
             }
 
             if (!IsValidMetadata(metadata)) {
