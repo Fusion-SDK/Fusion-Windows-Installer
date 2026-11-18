@@ -26,7 +26,8 @@ Apply the SQL files in order:
 
 1. `supabase/migrations/0001_initial.sql`
 2. `supabase/migrations/0002_catalog_releases_reviews.sql`
-3. `supabase/migrations/0003_catalog_column_privacy.sql`\n4. `supabase/migrations/0004_discord_account_linking.sql`
+3. `supabase/migrations/0003_catalog_column_privacy.sql`
+4. `supabase/migrations/0004_discord_account_linking.sql`
 
 You can apply them through the Supabase SQL Editor or the Supabase CLI using
 your own linked project. Do not skip migration 0002: it adds release metadata,
