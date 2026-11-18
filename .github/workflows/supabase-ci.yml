@@ -1,0 +1,70 @@
+name: Supabase Function Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - ".github/workflows/supabase-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - ".github/workflows/supabase-ci.yml"
+
+jobs:
+  check-edge-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check Discord link function
+        run: deno check supabase/functions/discord-link/index.ts
+
+  test-discord-link-migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fusion_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fusion_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create minimal Supabase auth roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d fusion_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon;
+          create role authenticated;
+          create role service_role;
+          create schema auth;
+          create table auth.users (id uuid primary key);
+          SQL
+      - name: Apply Discord linking migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d fusion_test -v ON_ERROR_STOP=1 -f supabase/migrations/0004_discord_account_linking.sql
+      - name: Test linking, uniqueness, rate limits, and grants
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d fusion_test -v ON_ERROR_STOP=1 -f supabase/tests/discord_account_linking.sql

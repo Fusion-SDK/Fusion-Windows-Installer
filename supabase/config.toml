@@ -1,0 +1,7 @@
+project_id = "fusion"
+
+[functions.discord-link]
+# The function performs its own split authentication:
+# - bot requests require FUSION_BOT_API_SECRET
+# - client confirmation requires a valid Supabase access token
+verify_jwt = false
