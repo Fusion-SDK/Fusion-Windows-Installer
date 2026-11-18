@@ -340,7 +340,8 @@ int main()
         TestPackageManagerRejectsUnsafeAndNestedSources(temporary.Path());
         TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());
         TestPackageFormatTwoVerifiesSha256(temporary.Path());
-        TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());\n        TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());
+        TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());
+        TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
