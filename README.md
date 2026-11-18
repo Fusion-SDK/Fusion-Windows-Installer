@@ -9,6 +9,10 @@ It is designed to run directly alongside [Geometry Dash](https://store.steampowe
 
 ---
 
+## Mod developer SDK
+
+See [the native mod SDK guide](src/Fusion.SDK/README.md) for the current C++ plugin ABI, lifecycle, and limitations.
+
 ## Architecture
 
 - **Fusion Bootstrap and Loader** — native startup and mod lifecycle infrastructure.
