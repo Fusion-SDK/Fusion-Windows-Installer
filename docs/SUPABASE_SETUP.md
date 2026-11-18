@@ -26,7 +26,7 @@ Apply the SQL files in order:
 
 1. `supabase/migrations/0001_initial.sql`
 2. `supabase/migrations/0002_catalog_releases_reviews.sql`
-3. `supabase/migrations/0003_catalog_column_privacy.sql`
+3. `supabase/migrations/0003_catalog_column_privacy.sql`\n4. `supabase/migrations/0004_discord_account_linking.sql`
 
 You can apply them through the Supabase SQL Editor or the Supabase CLI using
 your own linked project. Do not skip migration 0002: it adds release metadata,
@@ -36,7 +36,48 @@ For a CLI workflow, install the Supabase CLI, authenticate locally, link the
 intended project, review the pending migration list, and then push migrations.
 Do not commit local access tokens or project secrets.
 
-## 3. Current permissions and capabilities
+## 3. Discord account linking
+
+Migration 0004 creates a private challenge table and a one-to-one mapping between
+Discord user IDs and Fusion auth user IDs. RLS is enabled with no client policies;
+only the trusted Edge Function uses the service-role key.
+
+Deploy the function:
+
+```sh
+supabase functions deploy discord-link
+supabase secrets set FUSION_BOT_API_SECRET="use-a-long-random-secret"
+```
+
+The Supabase project URL, anon key, and service-role key are provided to the
+Edge Function by the Supabase runtime. Never put the service-role key in Fusion's
+Windows client or the Discord bot. Configure the same random
+`FUSION_BOT_API_SECRET` in the Discord bot host as `FUSION_BOT_API_SECRET`.
+Configure `FUSION_API_BASE_URL` to
+`https://YOUR_PROJECT.supabase.co/functions/v1/discord-link`.
+
+The bot also needs `FUSION_VERIFIED_ROLE_ID` and the Discord Manage Roles
+permission to assign the verified role. Place that role below the bot's highest
+role. Register the commands again after deploying the bot update.
+
+The bot supports `create_challenge`, `status`, and `unlink` actions using the
+shared bot secret. The Fusion client completes a challenge with the
+`confirm` action using the signed-in user's Supabase access token:
+
+```http
+POST /functions/v1/discord-link
+Authorization: Bearer USER_ACCESS_TOKEN
+Content-Type: application/json
+
+{"action":"confirm","code":"ONE_TIME_CODE"}
+```
+
+The client must obtain the access token from its existing authenticated Fusion
+session. Do not send passwords or refresh tokens to this endpoint. The current
+Geometry Dash in-game UI does not yet expose this confirmation flow, so account
+linking cannot be enabled end-to-end until that UI is implemented.
+
+## 4. Current permissions and capabilities
 
 - Profiles and sync data are scoped to the signed-in user by RLS.
 - Authenticated users can read approved catalog entries.
@@ -49,7 +90,7 @@ Do not commit local access tokens or project secrets.
 - Release metadata is readable only after a release is published and its mod is
   approved. Clients cannot insert or edit release metadata.
 
-## 4. Important release-security limitation
+## 5. Important release-security limitation
 
 Migration 0002 is metadata infrastructure, not a working package distribution
 service. Release rows are restricted to package format 3 and start as
@@ -69,7 +110,7 @@ The installer currently supports registration, sign-in, in-memory access-token
 refresh, sign-out, and reading approved catalog entries. It does not yet
 download or install catalog packages.
 
-## 5. Validation checklist
+## 6. Validation checklist
 
 Before enabling a project for real users:
 
@@ -86,3 +127,14 @@ Before enabling a project for real users:
 
 Use forward migrations for schema changes after a migration has been applied;
 do not edit an already-applied migration in a deployed project.
+
+
+For Discord linking, also verify on a disposable project that:
+
+- A code expires after ten minutes and can be consumed only once.
+- More than three challenge requests in fifteen minutes are rate-limited.
+- An unauthenticated or invalid Fusion session cannot confirm a code.
+- A Discord ID cannot link to multiple Fusion accounts.
+- A Fusion account cannot link to multiple Discord IDs.
+- An anon/authenticated client cannot read challenge rows or link mappings.
+- The Discord bot cannot grant a role until the backend reports a confirmed link.
