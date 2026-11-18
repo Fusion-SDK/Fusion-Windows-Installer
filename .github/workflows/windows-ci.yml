@@ -46,7 +46,39 @@ jobs:
 
       - name: Install NSIS
         shell: pwsh
-        run: choco install nsis --yes --no-progress
+        run: |
+          $nsisCandidates = @(
+            "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
+            "$env:ProgramFiles\NSIS\makensis.exe"
+          )
+
+          $existingCompiler = $nsisCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if ($existingCompiler) {
+            Write-Host "NSIS is already available at $existingCompiler"
+            exit 0
+          }
+
+          $maxAttempts = 3
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            Write-Host "Installing NSIS (attempt $attempt of $maxAttempts)..."
+            choco install nsis --yes --no-progress --execution-timeout=300
+
+            if ($LASTEXITCODE -eq 0) {
+              $installedCompiler = $nsisCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+              if ($installedCompiler) {
+                Write-Host "NSIS installed at $installedCompiler"
+                exit 0
+              }
+            }
+
+            if ($attempt -lt $maxAttempts) {
+              $delay = 15 * $attempt
+              Write-Warning "NSIS installation failed or compiler was not found. Retrying in $delay seconds."
+              Start-Sleep -Seconds $delay
+            }
+          }
+
+          throw "NSIS installation failed after $maxAttempts attempts."
 
       - name: Create Fusion Installer
         shell: pwsh
@@ -68,8 +100,19 @@ jobs:
 
           Set-Content -Path "Fusion-Setup.nsi" -Value $nsisScript -Encoding ASCII
 
-          $makensis = "C:\Program Files (x86)\NSIS\makensis.exe"
-          if (!(Test-Path $makensis)) {
+          $compilerCommand = Get-Command "makensis.exe" -ErrorAction SilentlyContinue
+          if ($compilerCommand) {
+            $makensis = $compilerCommand.Source
+          }
+          else {
+            $candidates = @(
+              "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
+              "$env:ProgramFiles\NSIS\makensis.exe"
+            )
+            $makensis = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+
+          if (!$makensis) {
             throw "NSIS compiler was not found."
           }
 
