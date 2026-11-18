@@ -1,7 +1,9 @@
 # Fusion for Windows completion plan
 
 This plan distinguishes repository infrastructure from features that require a
-running Geometry Dash process.
+running Geometry Dash process. Development can continue on the loader,
+installer, catalog, and test infrastructure without Steam access; game-specific
+behavior remains an explicit validation gate rather than an assumed result.
 
 ## Track A — loader foundation
 
@@ -9,28 +11,36 @@ running Geometry Dash process.
 - [x] Dependency-aware load planning.
 - [x] Native mod lifecycle and enable/disable preferences.
 - [x] Version 2 settings persistence for profiles and keybind assignments.
-- [ ] Native unit tests for settings migration, profile lifecycle, and keybind
-      conflict validation.
+- [x] Native regression tests for settings migration, profile lifecycle, and
+      keybind validation (GitHub Actions run 44339463233).
+- [ ] Native regression tests for package installation, update, rollback,
+      path safety, and recovery (in progress).
 - [ ] Runtime adapters for each additional language (C#, Lua, JavaScript).
 - [ ] Crash-safe mod isolation and recovery.
 
 ## Track B — Geometry Dash integration
 
 - [ ] Confirm the exact Steam game build number and executable architecture.
-- [ ] Implement and test automatic loading from the normal Steam Play action.
-- [ ] Implement version-specific game API adapter and hook lifecycle.
+- [ ] Verify automatic loading from the normal Steam Play action in the target
+      game installation.
+- [ ] Implement a version-specific game API adapter and hook lifecycle.
 - [ ] Add game-ready/shutdown notifications and safe hook teardown.
-- [ ] Implement in-game Fusion menu and input routing.
+- [ ] Implement the in-game Fusion menu and input routing.
 - [ ] Connect mod enablement, profiles, keybinds, dependency details, and
       troubleshooting screens to the menu.
 - [ ] Verify clean install, update, rollback, and uninstall on a clean machine.
+
+These checks require access to a supported Steam Geometry Dash installation.
+They must remain unverified until tested against the actual game process.
 
 ## Track C — catalog and accounts
 
 - [x] Initial Supabase auth and catalog read integration.
 - [x] Initial profile, mod, submission, and sync tables.
-- [ ] Add versioned mod releases and immutable artifact metadata.
-- [ ] Add package hash/signature verification and safe download handling.
+- [ ] Define versioned mod releases and immutable artifact metadata.
+- [ ] Implement package hash verification and safe download handling.
+- [ ] Define publisher signing and trust/key-rotation policy before enforcing
+      digital signatures.
 - [ ] Add ratings/reviews with abuse controls and RLS policies.
 - [ ] Add download/install/update records and rollback support.
 - [ ] Add publisher ownership and moderation workflows.
