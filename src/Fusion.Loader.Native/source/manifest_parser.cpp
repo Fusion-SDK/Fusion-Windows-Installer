@@ -1,5 +1,6 @@
 #include "fusion/loader/manifest_parser.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <nlohmann/json.hpp>
