@@ -1,4 +1,5 @@
 #include "fusion/loader/mod_settings.hpp"
+#include "fusion/loader/mod_loader.hpp"
 #include "fusion/loader/package_manager.hpp"
 #include "fusion/loader/sha256.hpp"
 
@@ -341,7 +342,7 @@ int main()
         TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());
         TestPackageFormatTwoVerifiesSha256(temporary.Path());
         TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());
-        TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());
+        TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());\n        TestDependencyMinimumVersionRequiresThreeNumericParts(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
