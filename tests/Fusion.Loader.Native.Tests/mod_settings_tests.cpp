@@ -3,6 +3,7 @@
 #include "fusion/loader/package_manager.hpp"
 #include "fusion/loader/sha256.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -327,6 +328,54 @@ void TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(
         "An unverified format 3 package must never be activated.");
 }
 
+
+void TestDependencyMinimumVersionRequiresThreeNumericParts(
+    const std::filesystem::path& root)
+{
+    const auto mods = root / "version-validation-mods";
+    const auto dependency = mods / "dependency.mod";
+    const auto consumer = mods / "consumer.mod";
+    std::filesystem::create_directories(dependency);
+    std::filesystem::create_directories(consumer);
+
+    {
+        std::ofstream manifest(dependency / "mod.json");
+        manifest << R"({"id":"dependency.mod","name":"Dependency","author":"Fusion Tests","version":"1.2.3"})";
+    }
+    {
+        std::ofstream manifest(consumer / "mod.json");
+        manifest << R"({"id":"consumer.mod","name":"Consumer","author":"Fusion Tests","version":"1.0.0","dependencies":[{"id":"dependency.mod","minimumVersion":"1.2"}]})";
+    }
+
+    fusion::loader::ModRegistry registry;
+    Require(registry.Discover(mods), "The dependency test mods should be discovered.");
+    fusion::loader::ModLoader loader;
+    loader.BuildLoadPlan(registry);
+
+    const auto found = std::find_if(
+        loader.GetManagedMods().begin(), loader.GetManagedMods().end(),
+        [](const fusion::loader::ManagedMod& item) {
+            return item.discovered.metadata.id == "consumer.mod";
+        });
+    Require(found != loader.GetManagedMods().end(),
+        "The consumer mod should appear in the load plan.");
+    Require(found->state == fusion::loader::ModState::Failed,
+        "A two-part minimum version must be rejected rather than compared.");
+    Require(found->statusMessage.find("Dependency version requirement not met") != std::string::npos,
+        "An invalid minimum version should produce a dependency-version diagnostic.");
+
+    {
+        std::ofstream manifest(consumer / "mod.json");
+        manifest << R"({"id":"consumer.mod","name":"Consumer","author":"Fusion Tests","version":"1.0.0","dependencies":[{"id":"dependency.mod","minimumVersion":"1.2.3"}]})";
+    }
+    Require(registry.Discover(mods), "The updated dependency test mods should be discovered.");
+    loader.BuildLoadPlan(registry);
+    Require(std::find(loader.GetLoadOrder().begin(), loader.GetLoadOrder().end(),
+        "consumer.mod") != loader.GetLoadOrder().end(),
+        "A valid three-part minimum version should allow the consumer to load.");
+}
+
+
 } // namespace
 
 int main()
@@ -342,7 +391,8 @@ int main()
         TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());
         TestPackageFormatTwoVerifiesSha256(temporary.Path());
         TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());
-        TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());\n        TestDependencyMinimumVersionRequiresThreeNumericParts(temporary.Path());
+        TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());
+        TestDependencyMinimumVersionRequiresThreeNumericParts(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
