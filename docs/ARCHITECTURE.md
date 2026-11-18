@@ -85,7 +85,8 @@ and reading approved catalog entries only. Refresh tokens remain in memory for
 the current app session and are not persisted to disk. Release rows are restricted to signed format 3 metadata and remain
 pending until a trusted publisher workflow verifies the package and signature.
 The migration does not grant direct artifact-storage access or expose download
-URLs. A server-side publisher/moderation service and signed-download endpoint
+URLs. Follow-up column-level grants keep storage object paths and other users'
+account identifiers out of authenticated client queries. A server-side publisher/moderation service and signed-download endpoint
 must be implemented before releases can be published or downloaded. Reviews
 are user-scoped, one per user per mod, and moderation state is not client-writable.
 Privileged Supabase service-role keys must never be embedded in the Windows client.
