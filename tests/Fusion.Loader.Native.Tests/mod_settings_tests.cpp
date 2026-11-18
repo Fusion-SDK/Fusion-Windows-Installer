@@ -1,5 +1,6 @@
 #include "fusion/loader/mod_settings.hpp"
 #include "fusion/loader/package_manager.hpp"
+#include "fusion/loader/sha256.hpp"
 
 #include <chrono>
 #include <filesystem>
@@ -243,7 +244,7 @@ int main()
         TestMalformedSettingsAreRejected(temporary.Path());
         TestPackageInstallUpdateAndUninstall(temporary.Path());
         TestPackageManagerRejectsUnsafeAndNestedSources(temporary.Path());
-        TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());
+        TestPackageManagerRequiresRecoveryForStaleOperations(temporary.Path());\n        TestPackageFormatTwoVerifiesSha256(temporary.Path());\n        TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
