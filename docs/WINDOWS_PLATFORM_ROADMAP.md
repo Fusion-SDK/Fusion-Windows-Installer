@@ -41,7 +41,7 @@ They must remain unverified until tested against the actual game process.
 
 - [x] Initial Supabase auth and catalog read integration.
 - [x] Initial profile, mod, submission, and sync tables.
-- [ ] Define versioned mod releases and immutable artifact metadata.
+- [x] Add versioned signed-format-3 release metadata schema (migration 0002; publishing remains disabled until signature verification exists).
 - [x] Implement package hash verification for local format 2 packages.
 - [ ] Implement signed format 3 release verification and safe online download handling.
 - [x] Define publisher signing and trust/key-rotation policy before enforcing
