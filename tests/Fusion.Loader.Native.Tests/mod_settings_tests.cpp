@@ -240,7 +240,7 @@ void TestPackageFormatTwoVerifiesSha256(const std::filesystem::path& root)
     std::filesystem::create_directories(package);
     {
         std::ofstream payload(package / "payload.txt", std::ios::binary);
-        payload << "hello\\n";
+        payload << "hello\n";
     }
     {
         std::ofstream manifest(package / "mod.json");
@@ -251,7 +251,7 @@ void TestPackageFormatTwoVerifiesSha256(const std::filesystem::path& root)
     std::string error;
     Require(manager.Install(package, error),
         "A format 2 package with matching SHA-256 should install: " + error);
-    Require(ReadTextFile(mods / "hashed.mod" / "payload.txt") == "hello\\n",
+    Require(ReadTextFile(mods / "hashed.mod" / "payload.txt") == "hello\n",
         "The verified payload should be installed.");
 
     const auto tampered = root / "tampered-package";
@@ -278,7 +278,7 @@ void TestPackageFormatTwoRejectsUnlistedFiles(const std::filesystem::path& root)
     std::filesystem::create_directories(package);
     {
         std::ofstream payload(package / "payload.txt", std::ios::binary);
-        payload << "hello\\n";
+        payload << "hello\n";
     }
     {
         std::ofstream extra(package / "extra.txt", std::ios::binary);
