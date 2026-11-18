@@ -49,3 +49,12 @@ before packages can be treated as publisher-authenticated.
 - Required Fusion Loader API version.
 - Declared capabilities and permissions.
 - Immutable online release metadata and trusted key policy.
+
+
+## Package format version 3 — signed packages
+
+See [PACKAGE_SIGNING_TRUST_MODEL.md](PACKAGE_SIGNING_TRUST_MODEL.md) for the
+proposed detached Ed25519 signature, publisher-key trust registry, revocation,
+rotation, online-install enforcement, and compatibility rollout. Format 3
+must not be treated as implemented until signature verification and trust
+registry distribution are complete and tested.

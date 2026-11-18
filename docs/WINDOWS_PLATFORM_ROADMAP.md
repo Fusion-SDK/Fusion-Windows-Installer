@@ -15,7 +15,7 @@ behavior remains an explicit validation gate rather than an assumed result.
       keybind validation (GitHub Actions run 44339463233).
 - [x] Native package-manager regression tests for install, update, uninstall,
       unsafe identifiers, nested sources, and stale-operation recovery.
-- [ ] Native package-integrity verification for format 2 manifests (in review).
+- [x] Native package-integrity verification for format 2 manifests (PR #11; Windows CI run 44356727748).\n- [ ] Define and implement signed format 3 packages, publisher key trust, rotation, and revocation.
 - [ ] Runtime adapters for each additional language (C#, Lua, JavaScript).
 - [ ] Crash-safe mod isolation and recovery.
 
@@ -39,7 +39,7 @@ They must remain unverified until tested against the actual game process.
 - [x] Initial Supabase auth and catalog read integration.
 - [x] Initial profile, mod, submission, and sync tables.
 - [ ] Define versioned mod releases and immutable artifact metadata.
-- [ ] Implement package hash verification and safe download handling.
+- [x] Implement package hash verification for local format 2 packages.\n- [ ] Implement signed format 3 release verification and safe online download handling.
 - [ ] Define publisher signing and trust/key-rotation policy before enforcing
       digital signatures.
 - [ ] Add ratings/reviews with abuse controls and RLS policies.
