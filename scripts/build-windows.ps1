@@ -41,6 +41,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "Native Fusion Loader build failed."
 }
 
+# Run the native settings/profile/keybind regression suite before packaging.
+ctest --test-dir $nativeBuild -C Release --output-on-failure
+if ($LASTEXITCODE -ne 0) {
+    throw "Native Fusion Loader tests failed."
+}
+
 $nativeRelease = Join-Path $nativeBuild "Release"
 $bootstrapDll = Join-Path $nativeRelease "FusionBootstrap.dll"
 $xinputProxy = Join-Path $nativeRelease "XInput1_4.dll"

@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.24)
 
 project(FusionLoaderNative
@@ -6,6 +5,8 @@ project(FusionLoaderNative
     DESCRIPTION "Fusion native mod loader core"
     LANGUAGES CXX
 )
+
+include(CTest)
 
 include(FetchContent)
 
@@ -61,6 +62,25 @@ else()
     )
 endif()
 
+if(BUILD_TESTING)
+    add_executable(FusionLoaderNativeTests
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/Fusion.Loader.Native.Tests/mod_settings_tests.cpp
+    )
+    target_link_libraries(FusionLoaderNativeTests PRIVATE FusionLoaderCore)
+    target_compile_features(FusionLoaderNativeTests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(FusionLoaderNativeTests PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(FusionLoaderNativeTests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+        )
+    endif()
+
+    add_test(NAME FusionLoaderNativeTests COMMAND FusionLoaderNativeTests)
+endif()
 
 # Fusion's native bootstrap interface.
 # This DLL exposes a stable C interface for the game integration layer.
@@ -100,8 +120,6 @@ else()
     )
 endif()
 
-
-
 if(WIN32)
     # Geometry Dash imports XInput1_4 on current 64-bit Windows builds. This
     # proxy forwards the real system API and loads FusionBootstrap in-process.
@@ -119,5 +137,4 @@ if(WIN32)
     else()
         target_compile_options(FusionXInputProxy PRIVATE -Wall -Wextra -Wpedantic)
     endif()
-
 endif()
