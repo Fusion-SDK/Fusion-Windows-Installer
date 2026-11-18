@@ -144,12 +144,15 @@ with check (
 -- Do not grant clients write access to release metadata or moderation state.
 -- A trusted server-side publisher/moderation workflow must use the service role.
 grant select on public.mod_releases to authenticated;
-grant select, insert, select, update on public.mod_reviews to authenticated;
-grant select, insert on public.mod_download_events to authenticated;
+grant select on public.mod_reviews to authenticated;
+grant select on public.mod_download_events to authenticated;
 
 -- Column-level grants prevent users from changing moderation fields or authorship.
 revoke insert, update on public.mod_reviews from authenticated;
+revoke insert on public.mod_download_events from authenticated;
 grant insert (mod_id, user_id, rating, body)
     on public.mod_reviews to authenticated;
 grant update (rating, body)
     on public.mod_reviews to authenticated;
+grant insert (release_id, user_id, event_type)
+    on public.mod_download_events to authenticated;
