@@ -93,7 +93,8 @@ Deno.serve(async (request) => {
       p_code_hash: await sha256(code),
     });
     if (error) return json({ error: "verification_unavailable" }, 503);
-    if (data !== true) return json({ error: "invalid_or_expired_code" }, 400);
+    if (data === "account_already_linked") return json({ error: "account_already_linked" }, 409);
+    if (data !== "linked") return json({ error: "invalid_or_expired_code" }, 400);
     return json({ linked: true });
   }
 
