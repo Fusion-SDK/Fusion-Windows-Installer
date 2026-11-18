@@ -76,11 +76,11 @@ create or replace function public.confirm_discord_link(
     p_fusion_user_id uuid,
     p_code_hash text
 )
-returns boolean
+returns text
 language plpgsql
 security definer
 set search_path = ''
-as $$
+as $
 declare
     challenge public.discord_link_challenges%rowtype;
     inserted_count integer;
@@ -93,7 +93,7 @@ begin
     for update;
 
     if not found then
-        return false;
+        return 'invalid_or_expired';
     end if;
 
     insert into public.discord_account_links (discord_user_id, fusion_user_id)
@@ -101,15 +101,16 @@ begin
     on conflict do nothing;
 
     get diagnostics inserted_count = row_count;
-    if inserted_count = 0 then
-        return false;
-    end if;
 
     update public.discord_link_challenges
        set consumed_at = now()
      where id = challenge.id;
 
-    return true;
+    if inserted_count = 0 then
+        return 'account_already_linked';
+    end if;
+
+    return 'linked';
 end;
 $$;
 
