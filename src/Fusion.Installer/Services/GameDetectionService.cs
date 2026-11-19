@@ -36,16 +36,38 @@ public class GameDetectionService
                 "GeometryDash.exe"
             );
 
-            if (File.Exists(executable))
-            {
-                return new GameInstall(
-                    gameDirectory,
-                    executable
-                );
-            }
+            var install = TryGetGameInstall(gameDirectory);
+            if (install is not null)
+                return install;
         }
 
         return null;
+    }
+
+    public GameInstall? TryGetGameInstall(string? gameDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(gameDirectory))
+            return null;
+
+        try
+        {
+            var fullPath = Path.GetFullPath(gameDirectory.Trim());
+            if (!Directory.Exists(fullPath))
+                return null;
+
+            var executable = Path.Combine(fullPath, "GeometryDash.exe");
+            return File.Exists(executable)
+                ? new GameInstall(fullPath, executable)
+                : null;
+        }
+        catch (Exception ex) when (
+            ex is ArgumentException or
+            NotSupportedException or
+            PathTooLongException or
+            IOException)
+        {
+            return null;
+        }
     }
 
     private static string? GetSteamInstallPath()

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 using Fusion.Installer.Models;
 using Fusion.Installer.Services;
 
@@ -10,14 +11,18 @@ public partial class MainWindow : Window
 {
     private readonly SupabaseService _supabase = new();
     private readonly GameDetectionService _gameDetection = new();
+    private readonly GameInstallSettingsService _gameSettings = new();
     private string? _accessToken;
     private string? _userEmail;
     private string? _refreshToken;
     private DateTimeOffset? _expiresAt;
+    private GameInstall? _selectedGameInstall;
 
     public MainWindow()
     {
         InitializeComponent();
+        var savedGameDirectory = _gameSettings.LoadGameDirectory();
+        _selectedGameInstall = _gameDetection.TryGetGameInstall(savedGameDirectory);
         ShowOverview();
         ConnectionLabel.Text = _supabase.IsConfigured
             ? "Supabase configured"
@@ -63,8 +68,11 @@ public partial class MainWindow : Window
         button.Click += async (_, _) =>
         {
             var result = await _gameDetection.DetectAsync();
+            if (result is not null)
+                _selectedGameInstall = result;
+
             MessageBox.Show(result is null
-                ? "Geometry Dash was not found in the common Steam library locations. You can add folder selection later."
+                ? "Geometry Dash was not found automatically. Open Games to select its folder manually."
                 : $"Geometry Dash detected:\n{result.GameDirectory}", "Fusion Game Detection",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         };
@@ -234,8 +242,118 @@ public partial class MainWindow : Window
     private async void Mods_Click(object sender, RoutedEventArgs e) => await ShowModsAsync();
     private void MyMods_Click(object sender, RoutedEventArgs e) =>
         ShowPlaceholder("My Mods", "Your installed mod library.", "Mod installation is not enabled in this starter build. It will be connected after Fusion Loader and signed package support are ready.");
-    private void Games_Click(object sender, RoutedEventArgs e) =>
-        ShowPlaceholder("Games", "Manage supported game installations.", "The first target is Geometry Dash on Steam. Other editions and platforms can be added after the Steam version is tested.");
+    private void Games_Click(object sender, RoutedEventArgs e) => ShowGames();
+
+    private void ShowGames()
+    {
+        SetPage("Games", "Manage the Geometry Dash installation used by Fusion.");
+        AddHeading("Geometry Dash (Steam)");
+        AddBody("Fusion currently targets the Windows Steam edition. Select the folder that contains GeometryDash.exe. This only records the game location; it does not install or modify game files.");
+
+        var pathBox = new TextBox
+        {
+            Text = _selectedGameInstall?.GameDirectory ?? string.Empty,
+            IsReadOnly = true,
+            MinWidth = 420,
+            MaxWidth = 680,
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        ContentPanel.Children.Add(pathBox);
+
+        var status = new TextBlock
+        {
+            Text = _selectedGameInstall is null
+                ? "No Geometry Dash installation selected."
+                : "Geometry Dash installation selected.",
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 12),
+            Foreground = (System.Windows.Media.Brush)FindResource("FusionMutedBrush")
+        };
+        ContentPanel.Children.Add(status);
+
+        var actions = new StackPanel { Orientation = Orientation.Horizontal };
+        var detect = new Button { Content = "Detect Steam install" };
+        var browse = new Button { Content = "Browse folder" };
+        var open = new Button
+        {
+            Content = "Open folder",
+            IsEnabled = _selectedGameInstall is not null
+        };
+        actions.Children.Add(detect);
+        actions.Children.Add(browse);
+        actions.Children.Add(open);
+        ContentPanel.Children.Add(actions);
+
+        detect.Click += async (_, _) =>
+        {
+            detect.IsEnabled = false;
+            status.Text = "Searching Steam libraries...";
+            try
+            {
+                var found = await _gameDetection.DetectAsync();
+                if (found is null)
+                {
+                    status.Text = "Geometry Dash was not found in the detected Steam libraries. Use Browse folder to select it manually.";
+                    return;
+                }
+
+                _selectedGameInstall = found;
+                _gameSettings.SaveGameDirectory(found.GameDirectory);
+                pathBox.Text = found.GameDirectory;
+                status.Text = "Geometry Dash detected and selected.";
+                open.IsEnabled = true;
+            }
+            catch (Exception ex)
+            {
+                status.Text = $"Game detection failed: {ex.Message}";
+            }
+            finally
+            {
+                detect.IsEnabled = true;
+            }
+        };
+
+        browse.Click += (_, _) =>
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = "Select the Geometry Dash folder",
+                Multiselect = false
+            };
+
+            if (_selectedGameInstall is not null)
+                dialog.InitialDirectory = _selectedGameInstall.GameDirectory;
+
+            if (dialog.ShowDialog(this) != true)
+                return;
+
+            var selected = _gameDetection.TryGetGameInstall(dialog.FolderName);
+            if (selected is null)
+            {
+                status.Text = "That folder does not contain GeometryDash.exe. Select the actual Geometry Dash game folder.";
+                return;
+            }
+
+            _selectedGameInstall = selected;
+            _gameSettings.SaveGameDirectory(selected.GameDirectory);
+            pathBox.Text = selected.GameDirectory;
+            status.Text = "Geometry Dash installation selected.";
+            open.IsEnabled = true;
+        };
+
+        open.Click += (_, _) =>
+        {
+            if (_selectedGameInstall is null)
+                return;
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = _selectedGameInstall.GameDirectory,
+                UseShellExecute = true
+            });
+        };
+    }
     private void Settings_Click(object sender, RoutedEventArgs e) =>
         ShowPlaceholder("Settings", "Application preferences.", "Settings and cloud preferences will be expanded as the installer develops.");
     private void ShowAuth_Click(object sender, RoutedEventArgs e) => ShowAuth();
