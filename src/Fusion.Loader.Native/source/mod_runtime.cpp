@@ -73,14 +73,36 @@ namespace fusion::loader {
                 return false;
             }
 
-            const auto candidate = std::filesystem::weakly_canonical(root / relative, ec);
+            // Inspect the unresolved path one component at a time before
+            // canonicalization. Otherwise a symlink that points back inside
+            // the mod directory could be silently treated as an ordinary file.
+            auto unresolved = root;
+            for (const auto& component : relative) {
+                if (component.empty() || component == "." || component == "..") {
+                    error = "Native library path contains an unsafe component.";
+                    return false;
+                }
+
+                unresolved /= component;
+                const auto status = std::filesystem::symlink_status(unresolved, ec);
+                if (ec) {
+                    error = "Unable to inspect native library path.";
+                    return false;
+                }
+                if (std::filesystem::is_symlink(status)) {
+                    error = "Symbolic links are not permitted in native library paths.";
+                    return false;
+                }
+            }
+
+            const auto candidate = std::filesystem::weakly_canonical(unresolved, ec);
             if (ec || !IsPathInside(candidate, root)) {
                 error = "Native library path escapes the mod directory or is invalid.";
                 return false;
             }
 
             if (!std::filesystem::is_regular_file(candidate, ec) || ec) {
-                error = "Native library file does not exist.";
+                error = "Native library file does not exist or is not a regular file.";
                 return false;
             }
 

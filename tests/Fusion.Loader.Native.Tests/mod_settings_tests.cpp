@@ -1,6 +1,7 @@
 #include "fusion/loader/mod_settings.hpp"
 #include "fusion/loader/mod_loader.hpp"
 #include "fusion/loader/mod_registry.hpp"
+#include "fusion/loader/mod_runtime.hpp"
 #include "fusion/loader/package_manager.hpp"
 #include "fusion/loader/sha256.hpp"
 
@@ -435,6 +436,49 @@ void TestModRegistryRejectsSymbolicLinks(const std::filesystem::path& root)
     }
 }
 
+
+void TestModRuntimeRejectsSymlinkedNativeLibraries(const std::filesystem::path& root)
+{
+    const auto mods = root / "runtime-symlink-mods";
+    const auto mod = mods / "linked-library.mod";
+    const auto outsideLibrary = root / "outside-plugin.dll";
+    std::filesystem::create_directories(mod / "bin");
+
+    {
+        std::ofstream library(outsideLibrary, std::ios::binary);
+        library << "not an executable library";
+    }
+    {
+        std::ofstream manifest(mod / "mod.json");
+        manifest << R"({"id":"linked.library","name":"Linked Library","author":"Fusion Tests","version":"1.0.0","library":"bin/plugin.dll"})";
+    }
+
+    std::error_code linkError;
+    std::filesystem::create_symlink(outsideLibrary, mod / "bin" / "plugin.dll", linkError);
+    if (linkError)
+        return; // Some Windows runners do not permit creating symbolic links.
+
+    fusion::loader::ModRegistry registry;
+    Require(registry.Discover(mods), "The runtime symlink fixture should be discoverable.");
+    fusion::loader::ModLoader loadPlan;
+    loadPlan.BuildLoadPlan(registry);
+
+    fusion::loader::ModRuntime runtime;
+    runtime.LoadAll(loadPlan, registry);
+    const auto found = std::find_if(
+        runtime.GetResults().begin(), runtime.GetResults().end(),
+        [](const fusion::loader::RuntimeModResult& result) {
+            return result.id == "linked.library";
+        });
+
+    Require(found != runtime.GetResults().end(),
+        "The linked native library should appear in runtime results.");
+    Require(found->state == fusion::loader::RuntimeModState::Failed,
+        "The runtime must not load a symbolic-link native library.");
+    Require(found->statusMessage.find("Symbolic links") != std::string::npos,
+        "The rejected native library should report the symbolic-link policy.");
+}
+
 } // namespace
 
 int main()
@@ -453,6 +497,7 @@ int main()
         TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());
         TestDependencyMinimumVersionRequiresThreeNumericParts(temporary.Path());
         TestModRegistryRejectsSymbolicLinks(temporary.Path());
+        TestModRuntimeRejectsSymlinkedNativeLibraries(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
