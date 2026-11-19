@@ -11,6 +11,7 @@ public partial class MainWindow : Window
 {
     private readonly SupabaseService _supabase = new();
     private readonly GameDetectionService _gameDetection = new();
+    private readonly GameInstallSettingsService _gameSettings = new();
     private string? _accessToken;
     private string? _userEmail;
     private string? _refreshToken;
@@ -20,6 +21,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        var savedGameDirectory = _gameSettings.LoadGameDirectory();
+        _selectedGameInstall = _gameDetection.TryGetGameInstall(savedGameDirectory);
         ShowOverview();
         ConnectionLabel.Text = _supabase.IsConfigured
             ? "Supabase configured"
@@ -296,6 +299,7 @@ public partial class MainWindow : Window
                 }
 
                 _selectedGameInstall = found;
+                _gameSettings.SaveGameDirectory(found.GameDirectory);
                 pathBox.Text = found.GameDirectory;
                 status.Text = "Geometry Dash detected and selected.";
                 open.IsEnabled = true;
@@ -332,6 +336,7 @@ public partial class MainWindow : Window
             }
 
             _selectedGameInstall = selected;
+            _gameSettings.SaveGameDirectory(selected.GameDirectory);
             pathBox.Text = selected.GameDirectory;
             status.Text = "Geometry Dash installation selected.";
             open.IsEnabled = true;
