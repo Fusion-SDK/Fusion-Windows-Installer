@@ -161,7 +161,14 @@ public partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(_accessToken))
         {
             AddBody("Sign in before browsing the mod catalog.");
-            ContentPanel.Children.Add(new Button { Content = "Sign in", Width = 140, HorizontalAlignment = HorizontalAlignment.Left });
+            var signInButton = new Button
+            {
+                Content = "Sign in",
+                Width = 140,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            signInButton.Click += (_, _) => ShowAuth();
+            ContentPanel.Children.Add(signInButton);
             return;
         }
 
