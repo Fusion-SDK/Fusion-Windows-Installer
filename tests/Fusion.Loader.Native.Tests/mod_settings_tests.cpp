@@ -1,5 +1,6 @@
 #include "fusion/loader/mod_settings.hpp"
 #include "fusion/loader/mod_loader.hpp"
+#include "fusion/loader/mod_registry.hpp"
 #include "fusion/loader/package_manager.hpp"
 #include "fusion/loader/sha256.hpp"
 
@@ -376,6 +377,64 @@ void TestDependencyMinimumVersionRequiresThreeNumericParts(
 }
 
 
+
+void TestModRegistryRejectsSymbolicLinks(const std::filesystem::path& root)
+{
+    const auto mods = root / "registry-symlink-mods";
+    const auto outside = root / "outside-mod";
+    std::filesystem::create_directories(mods);
+    std::filesystem::create_directories(outside);
+
+    {
+        std::ofstream manifest(outside / "mod.json");
+        manifest << R"({"id":"linked.mod","name":"Linked Mod","author":"Fusion Tests","version":"1.0.0"})";
+    }
+
+    std::error_code directoryLinkError;
+    std::filesystem::create_directory_symlink(outside, mods / "linked.mod", directoryLinkError);
+
+    fusion::loader::ModRegistry registry;
+    Require(registry.Discover(mods), "The mods directory should still be discoverable.");
+
+    if (!directoryLinkError) {
+        const auto linked = std::find_if(
+            registry.GetMods().begin(), registry.GetMods().end(),
+            [](const fusion::loader::DiscoveredMod& mod) {
+                return mod.directory.filename() == "linked.mod";
+            });
+        Require(linked != registry.GetMods().end(),
+            "A symbolic-link entry should be reported for diagnostics.");
+        Require(!linked->valid,
+            "A symbolic link to an external mod directory must never be loadable.");
+        Require(linked->error.find("Symbolic links") != std::string::npos,
+            "A rejected directory link should explain the reason.");
+    }
+
+    const auto manifestMod = mods / "manifest-link.mod";
+    std::filesystem::create_directories(manifestMod);
+    std::error_code manifestLinkError;
+    std::filesystem::create_symlink(
+        outside / "mod.json",
+        manifestMod / "mod.json",
+        manifestLinkError);
+
+    if (!manifestLinkError) {
+        Require(registry.Discover(mods),
+            "The registry should rediscover mods after a manifest-link fixture is added.");
+        const auto linkedManifest = std::find_if(
+            registry.GetMods().begin(), registry.GetMods().end(),
+            [](const fusion::loader::DiscoveredMod& mod) {
+                return mod.directory.filename() == "manifest-link.mod";
+            });
+        Require(linkedManifest != registry.GetMods().end(),
+            "A mod with a linked manifest should be reported.");
+        Require(!linkedManifest->valid,
+            "A symbolic-link manifest must never be parsed as a trusted mod manifest.");
+        Require(linkedManifest->error.find("symbolic link") != std::string::npos,
+            "A rejected manifest link should explain the reason.");
+    }
+}
+
 } // namespace
 
 int main()
@@ -393,6 +452,7 @@ int main()
         TestPackageFormatTwoRejectsUnlistedFiles(temporary.Path());
         TestPackageFormatThreeFailsClosedUntilSignaturesAreImplemented(temporary.Path());
         TestDependencyMinimumVersionRequiresThreeNumericParts(temporary.Path());
+        TestModRegistryRejectsSymbolicLinks(temporary.Path());
         std::cout << "All Fusion native settings tests passed.\n";
         return 0;
     }
