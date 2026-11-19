@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 
 namespace Fusion.Installer.Services;
