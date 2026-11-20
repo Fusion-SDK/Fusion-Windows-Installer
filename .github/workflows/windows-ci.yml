@@ -85,15 +85,24 @@ jobs:
         run: |
           $nsisScript = @'
           Unicode true
+          !include LogicLib.nsh
           Name "Fusion"
           OutFile "artifacts\Fusion-Setup.exe"
-          SilentInstall silent
           RequestExecutionLevel user
+          ShowInstDetails show
 
-          Section
+          Section "Install Fusion"
             SetOutPath "$TEMP\FusionSetup"
             File /r "artifacts\Fusion-Package\*"
-            ExecWait '"$TEMP\FusionSetup\Fusion.Setup.exe"'
+
+            DetailPrint "Launching Fusion Setup..."
+            ExecWait '"$TEMP\FusionSetup\Fusion.Setup.exe"' $setupExitCode
+
+            ${If} $setupExitCode != 0
+              MessageBox MB_ICONSTOP "Fusion Setup could not start or exited with an error (code $setupExitCode). Please try downloading the installer again."
+              Abort
+            ${EndIf}
+
             RMDir /r "$TEMP\FusionSetup"
           SectionEnd
           '@
