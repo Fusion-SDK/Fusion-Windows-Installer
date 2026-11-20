@@ -48,8 +48,8 @@ jobs:
         shell: pwsh
         run: |
           $nsisCandidates = @(
-            "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
-            "$env:ProgramFiles\NSIS\makensis.exe"
+            "${env:ProgramFiles(x86)}\\NSIS\\makensis.exe",
+            "$env:ProgramFiles\\NSIS\\makensis.exe"
           )
 
           $existingCompiler = $nsisCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -86,15 +86,23 @@ jobs:
           $nsisScript = @'
           Unicode true
           Name "Fusion"
-          OutFile "artifacts\Fusion-Setup.exe"
-          SilentInstall silent
+          OutFile "artifacts\\Fusion-Setup.exe"
           RequestExecutionLevel user
+          ShowInstDetails show
 
-          Section
-            SetOutPath "$TEMP\FusionSetup"
-            File /r "artifacts\Fusion-Package\*"
-            ExecWait '"$TEMP\FusionSetup\Fusion.Setup.exe"'
-            RMDir /r "$TEMP\FusionSetup"
+          Section "Install Fusion"
+            SetOutPath "$TEMP\\FusionSetup"
+            File /r "artifacts\\Fusion-Package\\*"
+
+            DetailPrint "Launching Fusion Setup..."
+            ExecWait '"$TEMP\\FusionSetup\\Fusion.Setup.exe"' $setupExitCode
+
+            ${If} $setupExitCode != 0
+              MessageBox MB_ICONSTOP "Fusion Setup could not start or exited with an error (code $setupExitCode). Please try downloading the installer again."
+              Abort
+            ${EndIf}
+
+            RMDir /r "$TEMP\\FusionSetup"
           SectionEnd
           '@
 
@@ -106,8 +114,8 @@ jobs:
           }
           else {
             $candidates = @(
-              "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
-              "$env:ProgramFiles\NSIS\makensis.exe"
+              "${env:ProgramFiles(x86)}\\NSIS\\makensis.exe",
+              "$env:ProgramFiles\\NSIS\\makensis.exe"
             )
             $makensis = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           }
