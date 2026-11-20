@@ -85,6 +85,7 @@ jobs:
         run: |
           $nsisScript = @'
           Unicode true
+          !include LogicLib.nsh
           Name "Fusion"
           OutFile "artifacts\Fusion-Setup.exe"
           RequestExecutionLevel user
