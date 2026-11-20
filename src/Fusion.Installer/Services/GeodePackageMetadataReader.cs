@@ -73,11 +73,16 @@ public sealed class GeodePackageMetadataReader
 
             using var stream = manifestEntry.Open();
             using var buffer = new MemoryStream((int)manifestEntry.Length);
-            stream.CopyTo(buffer);
-            if (buffer.Length > MaxManifestBytes)
+            var chunk = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = stream.Read(chunk, 0, chunk.Length)) > 0)
             {
-                error = "The package manifest exceeds the 1 MiB inspection limit.";
-                return false;
+                if (buffer.Length + bytesRead > MaxManifestBytes)
+                {
+                    error = "The package manifest exceeds the 1 MiB inspection limit.";
+                    return false;
+                }
+                buffer.Write(chunk, 0, bytesRead);
             }
 
             using var document = JsonDocument.Parse(buffer.ToArray(), new JsonDocumentOptions
@@ -121,8 +126,8 @@ public sealed class GeodePackageMetadataReader
             return true;
         }
         catch (Exception ex) when (
-            ex is ArgumentException or NotSupportedException or PathTooLongException or
-            IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
+            ex is ArgumentException or NotSupportedException or IOException or
+            InvalidDataException or UnauthorizedAccessException or JsonException)
         {
             error = ex is JsonException
                 ? "The package mod.json file is not valid JSON."
