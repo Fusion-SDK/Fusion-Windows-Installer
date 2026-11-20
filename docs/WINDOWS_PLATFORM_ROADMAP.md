@@ -57,7 +57,7 @@ They must remain unverified until tested against the actual game process.
 
 ## Track D — Geode compatibility without Geode installed
 
-- [ ] Build a Geode package metadata reader.
+- [x] Build a metadata-only Geode package reader (no extraction or code execution).
 - [ ] Inventory public Geode runtime APIs required by candidate mods.
 - [ ] Implement a versioned Fusion compatibility host for a defined API subset.
 - [ ] Implement compatibility capability declarations and unsupported-API
