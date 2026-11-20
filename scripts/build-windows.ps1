@@ -75,7 +75,7 @@ foreach ($project in @(
     Publish-FusionProject `
         -Project $project.Path `
         -Output $output `
-        -AdditionalArguments @("--runtime", $runtime, "--self-contained", "true", "-p:PublishSingleFile=true")
+        -AdditionalArguments @("--runtime", $runtime, "--self-contained", "true", "-p:PublishSingleFile=true", "-p:IncludeNativeLibrariesForSelfExtract=true")
 
     $executable = Join-Path $output "$($project.Name).exe"
     if (!(Test-Path $executable)) {
