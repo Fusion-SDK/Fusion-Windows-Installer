@@ -97,7 +97,10 @@ $setupExecutable = Join-Path $setupOutput "Fusion.Setup.exe"
 if (!(Test-Path $setupExecutable)) {
     throw "Fusion.Setup.exe was not produced."
 }
-Copy-Item $setupExecutable (Join-Path $packageRoot "Fusion.Setup.exe") -Force
+# WPF single-file publishing can emit native/runtime support files beside the
+# executable. Package the complete publish directory so the setup host can
+# start on clean Windows installations without missing sidecar dependencies.
+Copy-Item (Join-Path $setupOutput "*") $packageRoot -Recurse -Force
 
 # Validate the exact layout expected by Fusion.Setup before packaging.
 $requiredFiles = @(
