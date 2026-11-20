@@ -5,8 +5,7 @@
 
 Fusion is an independent Geometry Dash modding platform for Steam on Windows.
 It must not require Geode, and its mod-management experience belongs inside
-Geometry Dash rather than in a separate desktop manager. The Windows setup,
-updater, and uninstaller remain companion maintenance tools.
+Geometry Dash rather than in a separate desktop manager. The Windows setup remains the initial installer; one Fusion Manager application handles ongoing updates, repair, and uninstall.
 
 The target feature set includes an in-game mod browser and manager, profiles,
 keybinds, dependency management, troubleshooting, online accounts, catalog

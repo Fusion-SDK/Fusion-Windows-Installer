@@ -20,13 +20,11 @@ See [Supabase setup and deployment](docs/SUPABASE_SETUP.md) before configuring t
 
 - **Fusion Bootstrap and Loader** — native startup and mod lifecycle infrastructure.
 - **Fusion SDK** — the current native C plugin contract.
-- **Fusion Setup, Updater, and Uninstaller** — install and maintain Fusion-owned files.
+- **Fusion Setup and Fusion Manager** — install, check official releases, repair, and remove Fusion-owned files from one in-game-folder utility.
 - **Fusion Catalog** — Supabase-backed account and approved-mod catalog foundation.
 - **In-game integration** — planned Geometry Dash adapter and Fusion menu; not yet implemented.
 
-Fusion is not intended to require a separate desktop mod manager. The setup and
-maintenance tools are separate Windows utilities, while mod management is intended
-to happen inside Geometry Dash.
+Fusion is not intended to require a separate desktop mod manager. Fusion Setup is used for the initial installation. Afterward, Fusion Manager is installed beside Geometry Dash and provides update, repair, and uninstall actions. Mod management is still intended to happen inside Geometry Dash.
 
 ## Compatibility
 
