@@ -66,24 +66,18 @@ Publish-FusionProject `
     -Project "src/Fusion.Loader/Fusion.Loader.csproj" `
     -Output $fusionPayload
 
-# Supporting tools are installed beside the Fusion directory.
-foreach ($project in @(
-    @{ Path = "src/Fusion.Updater/Fusion.Updater.csproj"; Name = "Fusion.Updater" },
-    @{ Path = "src/Fusion.Uninstaller/Fusion.Uninstaller.csproj"; Name = "Fusion.Uninstaller" }
-)) {
-    $output = Join-Path $artifacts $project.Name
-    Publish-FusionProject `
-        -Project $project.Path `
-        -Output $output `
-        -AdditionalArguments @("--runtime", $runtime, "--self-contained", "true", "-p:PublishSingleFile=true", "-p:IncludeNativeLibrariesForSelfExtract=true")
+# Publish the unified Fusion Manager. It replaces the standalone updater and uninstaller.
+$managerOutput = Join-Path $artifacts "Fusion-Manager"
+Publish-FusionProject `
+    -Project "src/Fusion.Uninstaller/Fusion.Uninstaller.csproj" `
+    -Output $managerOutput `
+    -AdditionalArguments @("--runtime", $runtime, "--self-contained", "true", "-p:PublishSingleFile=true", "-p:IncludeNativeLibrariesForSelfExtract=true")
 
-    $executable = Join-Path $output "$($project.Name).exe"
-    if (!(Test-Path $executable)) {
-        throw "Expected executable was not produced: $executable"
-    }
-
-    Copy-Item $executable (Join-Path $payload "$($project.Name).exe") -Force
+$managerExecutable = Join-Path $managerOutput "Fusion.Manager.exe"
+if (!(Test-Path $managerExecutable)) {
+    throw "Fusion.Manager.exe was not produced."
 }
+Copy-Item $managerExecutable (Join-Path $payload "Fusion.Manager.exe") -Force
 
 # Publish the setup host separately, then place it beside its payload so
 # AppContext.BaseDirectory/payload resolves correctly when NSIS extracts it.
@@ -107,8 +101,7 @@ $requiredFiles = @(
     (Join-Path $packageRoot "Fusion.Setup.exe"),
     (Join-Path $payload "XInput1_4.dll"),
     (Join-Path $fusionPayload "FusionBootstrap.dll"),
-    (Join-Path $payload "Fusion.Updater.exe"),
-    (Join-Path $payload "Fusion.Uninstaller.exe"),
+    (Join-Path $payload "Fusion.Manager.exe"),
     (Join-Path $fusionPayload "Fusion.Installer.exe"),
     (Join-Path $fusionPayload "Fusion.Loader.dll")
 )
