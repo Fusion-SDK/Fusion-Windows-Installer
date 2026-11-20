@@ -90,6 +90,7 @@ jobs:
           OutFile "artifacts\Fusion-Setup.exe"
           RequestExecutionLevel user
           ShowInstDetails show
+          Var setupExitCode
 
           Section "Install Fusion"
             SetOutPath "$TEMP\FusionSetup"
