@@ -28,7 +28,9 @@ public partial class MainWindow : Window
                 // Remove Fusion's proxy first, then restore any proxy that was
                 // already present before Fusion was installed.
                 foreach (var relative in files.Where(x =>
-                    !x.Equals("XInput1_4.dll.fusion-backup", StringComparison.OrdinalIgnoreCase)))
+                    !x.Equals("XInput1_4.dll.fusion-backup", StringComparison.OrdinalIgnoreCase) &&
+                    !x.Equals("Fusion.Uninstaller.exe", StringComparison.OrdinalIgnoreCase) &&
+                    !x.Equals("Fusion.Updater.exe", StringComparison.OrdinalIgnoreCase)))
                 {
                     var path = FusionPaths.SafeCombine(root, relative);
                     if (File.Exists(path)) File.Delete(path);
