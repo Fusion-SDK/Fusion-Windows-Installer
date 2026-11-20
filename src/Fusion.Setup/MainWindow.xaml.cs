@@ -39,8 +39,7 @@ public partial class MainWindow : Window
         var required = new[]
         {
             "XInput1_4.dll",
-            "Fusion.Updater.exe",
-            "Fusion.Uninstaller.exe",
+            "Fusion.Manager.exe",
             Path.Combine("Fusion", "Fusion.Loader.dll"),
             Path.Combine("Fusion", "FusionBootstrap.dll")
         };
@@ -91,7 +90,7 @@ public partial class MainWindow : Window
                     if (!destination.StartsWith(safeRoot, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidDataException("Invalid package path.");
                 }
-                else if (normalized is not "XInput1_4.dll" and not "Fusion.Updater.exe" and not "Fusion.Uninstaller.exe")
+                else if (normalized is not "XInput1_4.dll" and not "Fusion.Manager.exe")
                 {
                     continue;
                 }
@@ -99,6 +98,13 @@ public partial class MainWindow : Window
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 await Task.Run(() => File.Copy(file, destination, true));
                 installed.Add(normalized);
+            }
+
+            // Remove the legacy standalone tools after the unified manager is installed.
+            foreach (var legacyTool in new[] { "Fusion.Updater.exe", "Fusion.Uninstaller.exe" })
+            {
+                var legacyPath = Path.Combine(target, legacyTool);
+                if (File.Exists(legacyPath)) File.Delete(legacyPath);
             }
 
             // Record the proxy and Fusion-owned files so uninstall can restore a
